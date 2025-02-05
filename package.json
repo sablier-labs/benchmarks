@@ -1,0 +1,58 @@
+{
+  "name": "benchmarks",
+  "description": "Solidity code to generate gas benchmarks for Sablier protocols",
+  "license": "GPL-3.0-or-later",
+  "version": "1.0.0",
+  "author": {
+    "name": "Sablier Labs Ltd",
+    "url": "https://sablier.com"
+  },
+  "bugs": {
+    "url": "https://github.com/sablier-labs/benchmarks/issues"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "5.0.2",
+    "@prb/math": "4.1.0",
+    "@sablier/lockup": "2.0.0",
+    "@sablier/airdrops": "1.3.0",
+    "@sablier/flow": "1.1.0"
+  },
+  "devDependencies": {
+    "forge-std": "github:foundry-rs/forge-std#v1.8.1",
+    "husky": "^9.1.4",
+    "lint-staged": "^15.2.8",
+    "prettier": "^3.3.2",
+    "solhint": "^5.0.3"
+  },
+  "homepage": "https://github.com/sablier-labs/benchmarks#readme",
+  "keywords": [
+    "ethereum",
+    "ethereum-benchmarks",
+    "evm-benchmarks",
+    "foundry",
+    "gas-benchmarks",
+    "money-streaming",
+    "real-time-finance",
+    "sablier",
+    "sablier-airdrops",
+    "sablier-flow",
+    "sablier-lockup",
+    "smart-contracts",
+    "solidity",
+    "token-streaming"
+  ],
+  "repository": "github.com:sablier-labs/benchmarks",
+  "scripts": {
+    "benchmark": "bun run build && bun run test && bun run prettier:write",
+    "build": "forge build",
+    "clean": "rm -rf cache",
+    "lint": "bun run lint:sol && bun run prettier:check",
+    "lint:fix": "bun run lint:sol:fix && forge fmt",
+    "lint:sol": "forge fmt --check && bun solhint \"contracts/**/*.sol\"",
+    "lint:sol:fix": "bun solhint \"contracts/**/*.sol\" --fix --noPrompt",
+    "prepare": "husky",
+    "prettier:check": "prettier --check \"**/*.{json,md,yml}\"",
+    "prettier:write": "prettier --write \"**/*.{json,md,yml}\"",
+    "test": "forge test"
+  }
+}

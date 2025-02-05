@@ -1,17 +1,17 @@
 # directories
+.github/workflows
 cache
-coverage
 node_modules
 out
 out-optimized
 
 # files
 *.env
-*.env.deployment
 *.log
+*.sol
 .DS_Store
 .pnp.*
-deployments.md
+bun.lockb
 lcov.info
 package-lock.json
 pnpm-lock.yaml
