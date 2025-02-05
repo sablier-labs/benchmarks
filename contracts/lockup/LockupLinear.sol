@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.22;
 
-import { ud } from "@prb/math/src/UD60x18.sol";
+import { ud, ZERO } from "@prb/math/src/UD60x18.sol";
 
 import { Lockup, LockupLinear } from "@sablier/lockup/src/types/DataTypes.sol";
 
-import { Benchmark } from "./Benchmark.sol";
+import { LockupBenchmark } from "./Benchmark.sol";
 
 /// @notice Contract to benchmark Lockup streams created using Linear model.
 /// @dev This contract creates a Markdown file with the gas usage of each function.
-contract LockupLinearGas is Benchmark {
+contract LockupLinearBenchmark is LockupBenchmark {
     /*//////////////////////////////////////////////////////////////////////////
                                 COMPUTE GAS FUNCTION
     //////////////////////////////////////////////////////////////////////////*/
@@ -52,8 +52,11 @@ contract LockupLinearGas is Benchmark {
         // Set the caller to the Sender for the next calls and change timestamp to before end time.
         resetPrank({ msgSender: users.sender });
 
+        // Calculate gas usage.
         Lockup.CreateWithDurations memory params = defaults.createWithDurations();
         LockupLinear.Durations memory durations = defaults.durations();
+        params.broker.fee = ZERO;
+        params.totalAmount = defaults.DEPOSIT_AMOUNT();
         durations.cliff = cliffDuration;
 
         LockupLinear.UnlockAmounts memory unlockAmounts = defaults.unlockAmounts();
@@ -65,22 +68,7 @@ contract LockupLinearGas is Benchmark {
 
         string memory cliffSetOrNot = cliffDuration == 0 ? " (cliff not set)" : " (cliff set)";
 
-        contentToAppend =
-            string.concat("| `createWithDurationsLL` (Broker fee set)", cliffSetOrNot, " | ", gasUsed, " |");
-
-        // Append the content to the file.
-        _appendToFile(benchmarkResultsFile, contentToAppend);
-
-        // Calculate gas usage without broker fee.
-        params.broker.fee = ud(0);
-        params.totalAmount = _calculateTotalAmount(defaults.DEPOSIT_AMOUNT(), ud(0));
-
-        beforeGas = gasleft();
-        lockup.createWithDurationsLL(params, unlockAmounts, durations);
-        gasUsed = vm.toString(beforeGas - gasleft());
-
-        contentToAppend =
-            string.concat("| `createWithDurationsLL` (Broker fee not set)", cliffSetOrNot, " | ", gasUsed, " |");
+        contentToAppend = string.concat("| `createWithDurationsLL`", cliffSetOrNot, " | ", gasUsed, " |");
 
         // Append the content to the file.
         _appendToFile(benchmarkResultsFile, contentToAppend);
@@ -90,7 +78,11 @@ contract LockupLinearGas is Benchmark {
         // Set the caller to the Sender for the next calls and change timestamp to before end time.
         resetPrank({ msgSender: users.sender });
 
+        // Calculate gas usage.
         Lockup.CreateWithTimestamps memory params = defaults.createWithTimestamps();
+        params.broker.fee = ud(0);
+        params.totalAmount = defaults.DEPOSIT_AMOUNT();
+
         LockupLinear.UnlockAmounts memory unlockAmounts = defaults.unlockAmounts();
         if (cliffTime == 0) unlockAmounts.cliff = 0;
 
@@ -100,22 +92,7 @@ contract LockupLinearGas is Benchmark {
 
         string memory cliffSetOrNot = cliffTime == 0 ? " (cliff not set)" : " (cliff set)";
 
-        contentToAppend =
-            string.concat("| `createWithTimestampsLL` (Broker fee set)", cliffSetOrNot, " | ", gasUsed, " |");
-
-        // Append the content to the file.
-        _appendToFile(benchmarkResultsFile, contentToAppend);
-
-        // Calculate gas usage without broker fee.
-        params.broker.fee = ud(0);
-        params.totalAmount = _calculateTotalAmount(defaults.DEPOSIT_AMOUNT(), ud(0));
-
-        beforeGas = gasleft();
-        lockup.createWithTimestampsLL(params, unlockAmounts, cliffTime);
-        gasUsed = vm.toString(beforeGas - gasleft());
-
-        contentToAppend =
-            string.concat("| `createWithTimestampsLL` (Broker fee not set)", cliffSetOrNot, " | ", gasUsed, " |");
+        contentToAppend = string.concat("| `createWithTimestampsLL`", cliffSetOrNot, " | ", gasUsed, " |");
 
         // Append the content to the file.
         _appendToFile(benchmarkResultsFile, contentToAppend);

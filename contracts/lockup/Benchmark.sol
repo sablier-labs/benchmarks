@@ -2,16 +2,15 @@
 pragma solidity >=0.8.22;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { UD60x18, ud } from "@prb/math/src/UD60x18.sol";
 import { ISablierBatchLockup } from "@sablier/lockup/src/interfaces/ISablierBatchLockup.sol";
 import { ISablierLockup } from "@sablier/lockup/src/interfaces/ISablierLockup.sol";
 import { Defaults } from "@sablier/lockup/tests/utils/Defaults.sol";
 import { Users } from "@sablier/lockup/tests/utils/Types.sol";
 import { Utils } from "@sablier/lockup/tests/utils/Utils.sol";
-import { DeployOptimized } from "@sablier/lockup/tests/utils/DeployOptimized.sol";
+import { StdCheats } from "forge-std/src/StdCheats.sol";
 
 /// @notice Base contract with common logic needed to get gas benchmarks for Lockup streams.
-abstract contract Benchmark is DeployOptimized, Utils {
+abstract contract LockupBenchmark is StdCheats, Utils {
     /*//////////////////////////////////////////////////////////////////////////
                                   STATE VARIABLES
     //////////////////////////////////////////////////////////////////////////*/
@@ -33,12 +32,12 @@ abstract contract Benchmark is DeployOptimized, Utils {
     Users internal users;
 
     /*//////////////////////////////////////////////////////////////////////////
-                                   TEST CONTRACTS
+                                    CONTRACTS
     //////////////////////////////////////////////////////////////////////////*/
 
     ISablierBatchLockup internal batchLockup;
-    Defaults internal defaults;
     IERC20 internal dai;
+    Defaults internal defaults;
     ISablierLockup internal lockup;
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -56,15 +55,15 @@ abstract contract Benchmark is DeployOptimized, Utils {
         // Load DAI token.
         dai = IERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F);
 
-        // Create some users;
+        // Create some users.
         users.alice = payable(makeAddr("alice"));
         users.recipient = payable(makeAddr("recipient"));
         users.sender = payable(makeAddr("sender"));
 
-        deal({ token: address(dai), to: users.sender, give: type(uint256).max });
+        deal({ token: address(dai), to: users.sender, give: type(uint128).max });
         resetPrank({ msgSender: users.sender });
-        dai.approve(address(batchLockup), type(uint256).max);
-        dai.approve(address(lockup), type(uint256).max);
+        dai.approve(address(batchLockup), type(uint128).max);
+        dai.approve(address(lockup), type(uint128).max);
 
         defaults = new Defaults();
         defaults.setToken(dai);
@@ -185,13 +184,6 @@ abstract contract Benchmark is DeployOptimized, Utils {
     /// @dev Append a line to the file at given path.
     function _appendToFile(string memory path, string memory line) internal {
         vm.writeLine({ path: path, data: line });
-    }
-
-    /// @dev Calculates the total amount to be deposited in the stream, by accounting for the broker fee.
-    function _calculateTotalAmount(uint128 depositAmount, UD60x18 brokerFee) internal pure returns (uint128) {
-        UD60x18 factor = ud(1e18);
-        UD60x18 totalAmount = ud(depositAmount).mul(factor).div(factor.sub(brokerFee));
-        return totalAmount.intoUint128();
     }
 
     /// @dev Internal function to creates a few streams in each Lockup contract.

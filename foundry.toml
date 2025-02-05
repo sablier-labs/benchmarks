@@ -12,8 +12,14 @@
   out = "out"
   sender = "0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38"
   solc = "0.8.26"
-  src = "contracts"
-  test = "contracts"
+
+[profile.flow]
+  src = "contracts/flow"
+  test = "contracts/flow"
+
+[profile.lockup]
+  src = "contracts/lockup"
+  test = "contracts/lockup"
 
 [fmt]
   bracket_spacing = true

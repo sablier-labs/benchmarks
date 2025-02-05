@@ -6,11 +6,11 @@ import { ud2x18 } from "@prb/math/src/UD2x18.sol";
 import { BatchLockup, Lockup, LockupDynamic, LockupTranched } from "@sablier/lockup/src/types/DataTypes.sol";
 import { BatchLockupBuilder } from "@sablier/lockup/tests/utils/Defaults.sol";
 
-import { Benchmark } from "./Benchmark.sol";
+import { LockupBenchmark } from "./Benchmark.sol";
 
 /// @notice Contract to benchmark SablierBatchLockup functions.
 /// @dev This contract creates a Markdown file with the gas usage of each function.
-contract BatchLockupGas is Benchmark {
+contract BatchLockupBenchmark is LockupBenchmark {
     /*//////////////////////////////////////////////////////////////////////////
                                   STATE VARIABLES
     //////////////////////////////////////////////////////////////////////////*/

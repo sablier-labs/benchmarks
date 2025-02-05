@@ -2,14 +2,14 @@
 pragma solidity >=0.8.22;
 
 import { ud2x18 } from "@prb/math/src/UD2x18.sol";
-import { UD60x18, ud } from "@prb/math/src/UD60x18.sol";
+import { ZERO } from "@prb/math/src/UD60x18.sol";
 import { Lockup, LockupDynamic } from "@sablier/lockup/src/types/DataTypes.sol";
 
-import { Benchmark } from "./Benchmark.sol";
+import { LockupBenchmark } from "./Benchmark.sol";
 
 /// @notice Contract to benchmark Lockup streams created using Dynamic model.
 /// @dev This contract creates a Markdown file with the gas usage of each function.
-contract LockupDynamicGas is Benchmark {
+contract LockupDynamicBenchmark is LockupBenchmark {
     /*//////////////////////////////////////////////////////////////////////////
                                   STATE VARIABLES
     //////////////////////////////////////////////////////////////////////////*/
@@ -68,34 +68,16 @@ contract LockupDynamicGas is Benchmark {
         // Set the caller to the Sender for the next calls and change timestamp to before end time.
         resetPrank({ msgSender: users.sender });
 
+        // Calculate gas usage.
         (Lockup.CreateWithDurations memory params, LockupDynamic.SegmentWithDuration[] memory segments) =
-            _createWithDurationParamsLD(totalSegments, defaults.BROKER_FEE());
+            _createWithDurationParamsLD(totalSegments);
 
         uint256 beforeGas = gasleft();
         lockup.createWithDurationsLD(params, segments);
         string memory gasUsed = vm.toString(beforeGas - gasleft());
 
-        contentToAppend = string.concat(
-            "| `createWithDurationsLD` (", vm.toString(totalSegments), " segments) (Broker fee set) | ", gasUsed, " |"
-        );
-
-        // Append the content to the file.
-        _appendToFile(benchmarkResultsFile, contentToAppend);
-
-        // Calculate gas usage without broker fee.
-        (params, segments) = _createWithDurationParamsLD(totalSegments, ud(0));
-
-        beforeGas = gasleft();
-        lockup.createWithDurationsLD(params, segments);
-        gasUsed = vm.toString(beforeGas - gasleft());
-
-        contentToAppend = string.concat(
-            "| `createWithDurationsLD` (",
-            vm.toString(totalSegments),
-            " segments) (Broker fee not set) | ",
-            gasUsed,
-            " |"
-        );
+        contentToAppend =
+            string.concat("| `createWithDurationsLD` (", vm.toString(totalSegments), " segments)| ", gasUsed, " |");
 
         _appendToFile(benchmarkResultsFile, contentToAppend);
 
@@ -112,35 +94,19 @@ contract LockupDynamicGas is Benchmark {
         // Set the caller to the Sender for the next calls and change timestamp to before end time
         resetPrank({ msgSender: users.sender });
 
-        (Lockup.CreateWithTimestamps memory params, LockupDynamic.Segment[] memory segments) =
-            _createWithTimestampParamsLD(totalSegments, defaults.BROKER_FEE());
-
-        uint256 beforeGas = gasleft();
-        lockup.createWithTimestampsLD(params, segments);
-
-        string memory gasUsed = vm.toString(beforeGas - gasleft());
-
-        contentToAppend = string.concat(
-            "| `createWithTimestampsLD` (", vm.toString(totalSegments), " segments) (Broker fee set) | ", gasUsed, " |"
-        );
-
         // Append the data to the file
         _appendToFile(benchmarkResultsFile, contentToAppend);
 
-        // Calculate gas usage without broker fee.
-        (params, segments) = _createWithTimestampParamsLD(totalSegments, ud(0));
+        // Calculate gas usage.
+        (Lockup.CreateWithTimestamps memory params, LockupDynamic.Segment[] memory segments) =
+            _createWithTimestampParamsLD(totalSegments);
 
-        beforeGas = gasleft();
+        uint256 beforeGas = gasleft();
         lockup.createWithTimestampsLD(params, segments);
-        gasUsed = vm.toString(beforeGas - gasleft());
+        string memory gasUsed = vm.toString(beforeGas - gasleft());
 
-        contentToAppend = string.concat(
-            "| `createWithTimestampsLD` (",
-            vm.toString(totalSegments),
-            " segments) (Broker fee not set) | ",
-            gasUsed,
-            " |"
-        );
+        contentToAppend =
+            string.concat("| `createWithTimestampsLD` (", vm.toString(totalSegments), " segments) | ", gasUsed, " |");
 
         // Append the data to the file
         _appendToFile(benchmarkResultsFile, contentToAppend);
@@ -150,10 +116,7 @@ contract LockupDynamicGas is Benchmark {
                                       HELPERS
     //////////////////////////////////////////////////////////////////////////*/
 
-    function _createWithDurationParamsLD(
-        uint128 totalSegments,
-        UD60x18 brokerFee
-    )
+    function _createWithDurationParamsLD(uint128 totalSegments)
         private
         view
         returns (Lockup.CreateWithDurations memory params, LockupDynamic.SegmentWithDuration[] memory segments_)
@@ -174,15 +137,12 @@ contract LockupDynamicGas is Benchmark {
         uint128 depositAmount = AMOUNT_PER_SEGMENT * totalSegments;
 
         params = defaults.createWithDurations();
-        params.totalAmount = _calculateTotalAmount(depositAmount, brokerFee);
-        params.broker.fee = brokerFee;
+        params.totalAmount = depositAmount;
+        params.broker.fee = ZERO;
         return (params, segments_);
     }
 
-    function _createWithTimestampParamsLD(
-        uint128 totalSegments,
-        UD60x18 brokerFee
-    )
+    function _createWithTimestampParamsLD(uint128 totalSegments)
         private
         view
         returns (Lockup.CreateWithTimestamps memory params, LockupDynamic.Segment[] memory segments_)
@@ -203,10 +163,10 @@ contract LockupDynamicGas is Benchmark {
         uint128 depositAmount = AMOUNT_PER_SEGMENT * totalSegments;
 
         params = defaults.createWithTimestamps();
-        params.totalAmount = _calculateTotalAmount(depositAmount, brokerFee);
+        params.totalAmount = depositAmount;
         params.timestamps.start = getBlockTimestamp();
         params.timestamps.end = segments_[totalSegments - 1].timestamp;
-        params.broker.fee = brokerFee;
+        params.broker.fee = ZERO;
         return (params, segments_);
     }
 }
