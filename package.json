@@ -15,20 +15,20 @@
     "@prb/math": "4.1.0",
     "@sablier/lockup": "2.0.1",
     "@sablier/airdrops": "1.3.0",
-    "@sablier/flow": "1.1.0"
+    "@sablier/flow": "1.1.1"
   },
   "devDependencies": {
-    "forge-std": "github:foundry-rs/forge-std#v1.8.1",
+    "forge-std": "github:foundry-rs/forge-std#v1.9.6",
     "husky": "^9.1.4",
     "lint-staged": "^15.2.8",
     "prettier": "^3.3.2",
-    "solady": "0.0.208",
     "solhint": "^5.0.3"
   },
   "homepage": "https://github.com/sablier-labs/benchmarks#readme",
   "keywords": [
     "ethereum",
     "ethereum-benchmarks",
+    "evm",
     "evm-benchmarks",
     "foundry",
     "gas-benchmarks",
@@ -45,16 +45,18 @@
   "private": true,
   "repository": "github.com:sablier-labs/benchmarks",
   "scripts": {
-    "benchmark:flow": "FOUNDRY_PROFILE=flow forge build && FOUNDRY_PROFILE=flow forge test",
-    "benchmark:lockup": "FOUNDRY_PROFILE=lockup forge build && FOUNDRY_PROFILE=lockup forge test",
-    "build": "forge build",
+    "benchmark": "forge test --show-progress -vv && bun run format:numbers",
+    "benchmark:all": "bun run benchmark:flow && bun run benchmark:lockup",
+    "benchmark:flow": "FOUNDRY_PROFILE=flow bun run benchmark",
+    "benchmark:lockup": "FOUNDRY_PROFILE=lockup bun run benchmark",
+    "check": "bun run prettier:check && forge fmt --check && bun solhint \"src/**/*.sol\"",
     "clean": "rm -rf cache",
-    "lint": "bun run lint:sol && bun run prettier:check",
-    "lint:fix": "bun run lint:sol:fix && forge fmt",
-    "lint:sol": "forge fmt --check && bun solhint \"src/**/*.sol\"",
-    "lint:sol:fix": "bun solhint \"src/**/*.sol\" --fix --noPrompt",
+    "fix": "bun run format && bun run fix:sol",
+    "fix:sol": "bun solhint \"src/**/*.sol\" --fix --noPrompt",
+    "format": "forge fmt && bun run format:numbers && bun run prettier:write",
+    "format:numbers": "node ./scripts/format-numbers.js && prettier --write \"results/**/*.md\"",
     "prepare": "husky",
-    "prettier:check": "prettier --check \"**/*.{json,md,yml}\"",
-    "prettier:write": "prettier --write \"**/*.{json,md,yml}\""
+    "prettier:check": "prettier --cache --check \"**/*.{js,json,md,yml}\"",
+    "prettier:write": "prettier --cache --write \"**/*.{js,json,md,yml}\""
   }
 }

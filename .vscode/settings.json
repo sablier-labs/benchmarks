@@ -1,5 +1,5 @@
 {
-  "[json][markdown][yaml]": {
+  "[js][json][markdown][yaml]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[solidity]": {

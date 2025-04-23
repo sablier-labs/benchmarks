@@ -8,18 +8,21 @@ import { Constants } from "@sablier/flow/tests/utils/Constants.sol";
 import { Utils } from "@sablier/flow/tests/utils/Utils.sol";
 import { Users } from "@sablier/flow/tests/utils/Types.sol";
 import { StdCheats } from "forge-std/src/StdCheats.sol";
+import { Logger } from "../Logger.sol";
 
 /// @notice Contract to benchmark Flow streams.
 /// @dev This contract creates a Markdown file with the gas usage of each function.
-contract FlowBenchmark is Constants, StdCheats, Utils {
+contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
     /*//////////////////////////////////////////////////////////////////////////
                                   STATE VARIABLES
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev The path to the file where the benchmark results are stored.
-    string internal benchmarkResultsFile = "results/flow/SablierFlow.md";
+    uint8 internal constant USDC_DECIMALS = 6;
 
-    uint256 internal streamId;
+    /// @dev The path to the file where the benchmark results are stored.
+    string internal resultsFile = "results/flow/sablier-flow.md";
+
+    uint256[7] internal streamIds;
 
     Users internal users;
 
@@ -35,143 +38,177 @@ contract FlowBenchmark is Constants, StdCheats, Utils {
     //////////////////////////////////////////////////////////////////////////*/
 
     function setUp() public {
+        logBlue("Setting up Flow benchmarks...");
+
         // Fork Ethereum Mainnet at the latest block.
         vm.createSelectFork({ urlOrAlias: "mainnet" });
-
         uint256 chainId = block.chainid;
         if (chainId != 1) {
             revert("Benchmarking only works on Ethereum Mainnet. Update your RPC URL in .env");
         }
+        logGreen("Forked Ethereum Mainnet");
 
         // Load deployed addresses from Ethereum mainnet.
         // See https://docs.sablier.com/guides/flow/deployments
         flow = ISablierFlow(0x3DF2AAEdE81D2F6b261F79047517713B8E844E04);
+        logGreen("Loaded SablierFlow contract");
 
         // Load USDC token.
         usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+        logGreen("Loaded USDC token contract");
 
-        // // Create some users.
+        // Create some users.
         users.recipient = payable(makeAddr("recipient"));
         users.sender = payable(makeAddr("sender"));
+        logGreen("Created test users");
 
         deal({ token: address(usdc), to: users.sender, give: type(uint128).max });
         resetPrank({ msgSender: users.sender });
         usdc.approve(address(flow), type(uint128).max);
+        logGreen("Funded and approved USDC");
 
-        for (uint8 count; count < 100; ++count) {
-            depositDefaultAmount({ _streamId: createDefaultStream() });
-        }
-
-        // Set the streamId to 50 for the test function.
-        streamId = 50;
+        logBlue("Creating 7 stream for testing...");
+        _setUpStreams();
+        logGreen("Created 7 test streams");
 
         // Create the file if it doesn't exist, otherwise overwrite it.
         vm.writeFile({
-            path: benchmarkResultsFile,
+            path: resultsFile,
             data: string.concat("# Benchmarks using 6-decimal token \n\n", "| Function | Gas Usage |\n", "| --- | --- |\n")
         });
+        logBlue("Setup complete! Ready to run benchmarks.");
     }
 
     /*//////////////////////////////////////////////////////////////////////////
-                                   TEST FUNCTION
+                                     BENCHMARK
     //////////////////////////////////////////////////////////////////////////*/
 
-    function testComputeGas_Implementations() external {
-        // {flow.adjustRatePerSecond}
-        computeGas(
+    function test_FlowBenchmark() external {
+        logBlue("\nStarting Flow benchmarks...");
+
+        /* -------------------------------- STREAM 0 -------------------------------- */
+
+        instrument(
             "adjustRatePerSecond",
-            abi.encodeCall(flow.adjustRatePerSecond, (streamId, ud21x18(RATE_PER_SECOND_U128 + 1)))
+            abi.encodeCall(flow.adjustRatePerSecond, (streamIds[0], ud21x18(RATE_PER_SECOND_U128 + 1)))
         );
 
-        // {flow.create}
-        computeGas(
+        instrument(
             "create", abi.encodeCall(flow.create, (users.sender, users.recipient, RATE_PER_SECOND, usdc, TRANSFERABLE))
         );
-
-        // {flow.deposit}
-        computeGas(
-            "deposit", abi.encodeCall(flow.deposit, (streamId, DEPOSIT_AMOUNT_6D, users.sender, users.recipient))
+        instrument(
+            "deposit", abi.encodeCall(flow.deposit, (streamIds[0], DEPOSIT_AMOUNT_6D, users.sender, users.recipient))
         );
 
-        // {flow.pause}
-        computeGas("pause", abi.encodeCall(flow.pause, (streamId)));
+        instrument("pause", abi.encodeCall(flow.pause, (streamIds[0])));
 
-        // {flow.refund} on an incremented stream ID
-        computeGas("refund", abi.encodeCall(flow.refund, (++streamId, REFUND_AMOUNT_6D)));
+        /* -------------------------------- STREAM 1 -------------------------------- */
 
-        // {flow.refundMax} on an incremented stream ID.
-        computeGas("refundMax", abi.encodeCall(flow.refundMax, (++streamId)));
+        instrument("refund", abi.encodeCall(flow.refund, (streamIds[1], REFUND_AMOUNT_6D)));
 
-        // Pause the current stream to test the restart function.
-        flow.pause(streamId);
+        /* -------------------------------- STREAM 2 -------------------------------- */
 
-        // {flow.restart}
-        computeGas("restart", abi.encodeCall(flow.restart, (streamId, RATE_PER_SECOND)));
+        instrument("refundMax", abi.encodeCall(flow.refundMax, (streamIds[2])));
 
-        // {flow.void} (on a solvent stream)
-        computeGas("void (solvent stream)", abi.encodeCall(flow.void, (streamId)));
+        // pause in order to instrument restart.
+        flow.pause(streamIds[2]);
 
-        // Warp time to accrue uncovered debt for the next call on an incremented stream ID..
-        vm.warp(flow.depletionTimeOf(++streamId) + 2 days);
+        instrument("restart", abi.encodeCall(flow.restart, (streamIds[2], RATE_PER_SECOND)));
 
-        // {flow.void} (on an insolvent stream)
-        computeGas("void (insolvent stream)", abi.encodeCall(flow.void, (streamId)));
+        // void a solvent stream.
+        instrument("void (solvent stream)", abi.encodeCall(flow.void, (streamIds[2])));
 
-        // {flow.withdraw} (on an insolvent stream) on an incremented stream ID.
-        computeGas(
+        /* -------------------------------- STREAM 3 -------------------------------- */
+
+        // warp time to accrue uncovered debt.
+        vm.warp(flow.depletionTimeOf(streamIds[3]) + 2 days);
+
+        // void an insolvent stream.
+        instrument("void (insolvent stream)", abi.encodeCall(flow.void, (streamIds[3])));
+
+        /* -------------------------------- STREAM 4 -------------------------------- */
+
+        // withdraw from an insolvent stream.
+        instrument(
             "withdraw (insolvent stream)",
-            abi.encodeCall(flow.withdraw, (++streamId, users.recipient, WITHDRAW_AMOUNT_6D))
+            abi.encodeCall(flow.withdraw, (streamIds[4], users.recipient, WITHDRAW_AMOUNT_6D))
         );
 
-        // Deposit amount on an incremented stream ID to make stream solvent.
-        flow.deposit(
-            ++streamId, uint128(flow.uncoveredDebtOf(streamId)) + DEPOSIT_AMOUNT_6D, users.sender, users.recipient
+        /* -------------------------------- STREAM 5 -------------------------------- */
+
+        uint128 depositAmount = uint128(flow.uncoveredDebtOf(streamIds[5])) + DEPOSIT_AMOUNT_6D;
+        flow.deposit(streamIds[5], depositAmount, users.sender, users.recipient);
+
+        // withdraw from a solvent stream.
+        instrument(
+            "withdraw (solvent stream)",
+            abi.encodeCall(flow.withdraw, (streamIds[5], users.recipient, WITHDRAW_AMOUNT_6D))
         );
 
-        // {flow.withdraw} (on a solvent stream).
-        computeGas(
-            "withdraw (solvent stream)", abi.encodeCall(flow.withdraw, (streamId, users.recipient, WITHDRAW_AMOUNT_6D))
-        );
+        /* -------------------------------- STREAM 6 -------------------------------- */
 
-        // {flow.withdrawMax} on an incremented stream ID.
-        computeGas("withdrawMax", abi.encodeCall(flow.withdrawMax, (++streamId, users.recipient)));
+        instrument("withdrawMax", abi.encodeCall(flow.withdrawMax, (streamIds[6], users.recipient)));
+
+        logBlue("\nCompleted all benchmarks");
     }
 
     /*//////////////////////////////////////////////////////////////////////////
                                       HELPERS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Compute gas usage of a given function using low-level call.
-    function computeGas(string memory name, bytes memory payload) internal {
+    /// @dev Instrument a function call and log the gas usage to the benchmark results file.
+    function instrument(string memory name, bytes memory payload) internal {
         // Simulate the passage of time.
         vm.warp(getBlockTimestamp() + 2 days);
 
+        logBlue(string.concat("Benchmarking: ", name));
         uint256 initialGas = gasleft();
-        (bool status,) = address(flow).call(payload);
+        (bool status, bytes memory revertData) = address(flow).call(payload);
         string memory gasUsed = vm.toString(initialGas - gasleft());
 
         // Ensure the function call was successful.
-        require(status, "Benchmark: call failed");
+        if (!status) {
+            _bubbleUpRevert(revertData);
+        }
 
         // Append the gas usage to the benchmark results file.
         string memory contentToAppend = string.concat("| `", name, "` | ", gasUsed, " |");
-        vm.writeLine({ path: benchmarkResultsFile, data: contentToAppend });
+        vm.writeLine({ path: resultsFile, data: contentToAppend });
+        logGreen(string.concat(name, " (", gasUsed, " gas)"));
     }
 
-    function createDefaultStream() internal returns (uint256) {
-        return flow.create({
+    function _bubbleUpRevert(bytes memory revertData) internal pure {
+        assembly {
+            // Get the length of the result stored in the first 32 bytes.
+            let resultSize := mload(revertData)
+
+            // Forward the pointer by 32 bytes to skip the length argument, and revert with the result.
+            revert(add(32, revertData), resultSize)
+        }
+    }
+
+    function _createAndFundStream() internal returns (uint256) {
+        uint256 streamId = flow.create({
             sender: users.sender,
             recipient: users.recipient,
             ratePerSecond: RATE_PER_SECOND,
             token: usdc,
             transferable: TRANSFERABLE
         });
+        uint128 depositAmount = getDefaultDepositAmount(USDC_DECIMALS);
+        flow.deposit(streamId, depositAmount, users.sender, users.recipient);
+        return streamId;
     }
 
-    function depositDefaultAmount(uint256 _streamId) internal {
+    function _setUpStreams() internal {
+        for (uint256 i = 0; i < 7; i++) {
+            streamIds[i] = _createAndFundStream();
+        }
+    }
+
+    function _deposit(uint256 _streamId) internal {
         uint8 decimals = flow.getTokenDecimals(_streamId);
         uint128 depositAmount = getDefaultDepositAmount(decimals);
-
         flow.deposit(_streamId, depositAmount, users.sender, users.recipient);
     }
 }
