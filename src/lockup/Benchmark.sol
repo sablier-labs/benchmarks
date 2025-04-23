@@ -46,7 +46,12 @@ abstract contract LockupBenchmark is StdCheats, Utils {
 
     function setUp() public virtual {
         // Fork Ethereum Mainnet at the latest block.
-        vm.createSelectFork("mainnet");
+        vm.createSelectFork({ urlOrAlias: "mainnet" });
+
+        uint256 chainId = block.chainid;
+        if (chainId != 1) {
+            revert("Benchmarking only works on Ethereum Mainnet. Update your RPC URL in .env");
+        }
 
         // Load deployed addresses from Ethereum mainnet.
         // See https://docs.sablier.com/guides/lockup/deployments
