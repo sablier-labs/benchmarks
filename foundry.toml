@@ -12,12 +12,12 @@
   solc = "0.8.26"
 
 [profile.flow]
-  src = "contracts/flow"
-  test = "contracts/flow"
+  src = "src/flow"
+  test = "src/flow"
 
 [profile.lockup]
-  src = "contracts/lockup"
-  test = "contracts/lockup"
+  src = "src/lockup"
+  test = "src/lockup"
 
 [fmt]
   bracket_spacing = true

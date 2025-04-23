@@ -51,8 +51,8 @@
     "clean": "rm -rf cache",
     "lint": "bun run lint:sol && bun run prettier:check",
     "lint:fix": "bun run lint:sol:fix && forge fmt",
-    "lint:sol": "forge fmt --check && bun solhint \"contracts/**/*.sol\"",
-    "lint:sol:fix": "bun solhint \"contracts/**/*.sol\" --fix --noPrompt",
+    "lint:sol": "forge fmt --check && bun solhint \"src/**/*.sol\"",
+    "lint:sol:fix": "bun solhint \"src/**/*.sol\" --fix --noPrompt",
     "prepare": "husky",
     "prettier:check": "prettier --check \"**/*.{json,md,yml}\"",
     "prettier:write": "prettier --write \"**/*.{json,md,yml}\""

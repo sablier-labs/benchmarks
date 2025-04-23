@@ -39,12 +39,13 @@ contract FlowBenchmark is Constants, StdCheats, Utils {
         vm.createSelectFork("mainnet");
 
         // Load deployed addresses from Ethereum mainnet.
+        // See https://docs.sablier.com/guides/flow/deployments
         flow = ISablierFlow(0x3DF2AAEdE81D2F6b261F79047517713B8E844E04);
 
         // Load USDC token.
         usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
 
-        // Create some users.
+        // // Create some users.
         users.recipient = payable(makeAddr("recipient"));
         users.sender = payable(makeAddr("sender"));
 

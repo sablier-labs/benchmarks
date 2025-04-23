@@ -1,5 +1,5 @@
 "*.{json,md,yml}":
   - "prettier --cache --write"
 "*.sol":
-  - "bun solhint contracts/**/*.sol --fix --noPrompt"
+  - "bun solhint src/**/*.sol --fix --noPrompt"
   - "forge fmt"

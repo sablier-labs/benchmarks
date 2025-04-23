@@ -49,6 +49,7 @@ abstract contract LockupBenchmark is StdCheats, Utils {
         vm.createSelectFork("mainnet");
 
         // Load deployed addresses from Ethereum mainnet.
+        // See https://docs.sablier.com/guides/lockup/deployments
         batchLockup = ISablierBatchLockup(0x3F6E8a8Cffe377c4649aCeB01e6F20c60fAA356c);
         lockup = ISablierLockup(0x7C01AA3783577E15fD7e272443D44B92d5b21056);
 
