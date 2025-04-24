@@ -97,8 +97,7 @@ abstract contract LockupBenchmark is Logger, StdCheats, Utils {
         resetPrank({ msgSender: caller });
 
         // If caller is not the recipient, the withdrawal address must be the recipient.
-        bool isCallerRecipient = caller == users.recipient;
-        if (!isCallerRecipient) {
+        if (caller != users.recipient) {
             to = users.recipient;
         }
 
@@ -116,8 +115,8 @@ abstract contract LockupBenchmark is Logger, StdCheats, Utils {
                                       HELPERS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Internal function to creates a few streams in each Lockup contract.
-    function _setUpStreams() internal {
+    /// @dev Private function to creates a few streams in each Lockup contract.
+    function _setUpStreams() private {
         L.CreateWithTimestamps memory params = defaults.createWithTimestamps();
 
         streamIds[0] = lockup.createWithTimestampsLD({ params: params, segments: defaults.segments() });

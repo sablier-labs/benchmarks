@@ -19,6 +19,7 @@ contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
 
     uint8 internal constant USDC_DECIMALS = 6;
     string internal RESULTS_FILE = "results/flow/flow.md";
+
     uint256[7] internal streamIds;
     Users internal users;
 
@@ -63,6 +64,7 @@ contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
         usdc.approve(address(flow), type(uint128).max);
         logGreen("Funded and approved USDC");
 
+        // Create test streams.
         for (uint256 i = 0; i < 7; i++) {
             streamIds[i] = _createAndFundStream();
         }
@@ -173,6 +175,8 @@ contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
         uint256 initialGas = gasleft();
         (bool status, bytes memory revertData) = address(flow).call(payload);
         uint256 gasUsed = initialGas - gasleft();
+
+        // If the function call reverted, load and bubble up the revert data.
         if (!status) {
             _bubbleUpRevert(revertData);
         }
@@ -183,6 +187,7 @@ contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
     }
 
     function _bubbleUpRevert(bytes memory revertData) private pure {
+        // solhint-disable no-inline-assembly
         assembly {
             // Get the length of the result stored in the first 32 bytes.
             let resultSize := mload(revertData)
