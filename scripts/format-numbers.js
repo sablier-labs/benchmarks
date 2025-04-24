@@ -16,8 +16,8 @@ async function format(filePath) {
   const markdownContent = await fs.readFile(filePath, "utf8");
 
   // Replace large numbers with formatted versions that include thousand separators
-  // Using a simpler regex that just matches numbers with 4 or more digits
-  const formattedContent = markdownContent.replace(/\b\d{4,}\b/g, (match) => {
+  // Using a regex that matches numbers with 5 or more digits
+  const formattedContent = markdownContent.replace(/\b\d{5,}\b/g, (match) => {
     return numberFormatter.format(Number.parseInt(match));
   });
 
@@ -25,8 +25,8 @@ async function format(filePath) {
   await fs.writeFile(filePath, formattedContent);
 }
 
-format("results/flow/sablier-flow.md");
-format("results/lockup/sablier-batch-lockup.md");
-format("results/lockup/sablier-lockup-dynamic.md");
-format("results/lockup/sablier-lockup-linear.md");
-format("results/lockup/sablier-lockup-tranched.md");
+format("results/flow/flow.md");
+format("results/lockup/batch-lockup.md");
+format("results/lockup/lockup-dynamic.md");
+format("results/lockup/lockup-linear.md");
+format("results/lockup/lockup-tranched.md");

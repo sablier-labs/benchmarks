@@ -18,12 +18,8 @@ contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
     //////////////////////////////////////////////////////////////////////////*/
 
     uint8 internal constant USDC_DECIMALS = 6;
-
-    /// @dev The path to the file where the benchmark results are stored.
-    string internal resultsFile = "results/flow/sablier-flow.md";
-
+    string internal RESULTS_FILE = "results/flow/flow.md";
     uint256[7] internal streamIds;
-
     Users internal users;
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -67,7 +63,6 @@ contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
         usdc.approve(address(flow), type(uint128).max);
         logGreen("Funded and approved USDC");
 
-        logBlue("Creating 7 stream for testing...");
         for (uint256 i = 0; i < 7; i++) {
             streamIds[i] = _createAndFundStream();
         }
@@ -75,11 +70,13 @@ contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
 
         // Create the file if it doesn't exist, otherwise overwrite it.
         vm.writeFile({
-            path: resultsFile,
+            path: RESULTS_FILE,
             data: string.concat(
-                "# Benchmarks using 6-decimal token \n\n",
-                "| Function | Gas Usage | Stream Solvency |\n",
-                "| --- | --- | --- |\n"
+                "## Benchmarks for SablierFlow\n\n",
+                "With USDC as the streaming token.\n\n",
+                "<!-- prettier-sort-markdown-table -->\n",
+                "| Function | Stream Solvency | Gas Usage |\n",
+                "| :------- | :-------------- | :-------- |\n"
             )
         });
         logBlue("Setup complete! Ready to run benchmarks.");
@@ -163,10 +160,9 @@ contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
     //////////////////////////////////////////////////////////////////////////*/
 
     /// @dev Appends a row to the benchmark results file.
-    function appendRow(string memory name, string memory gasUsed, string memory solvency) internal {
-        string memory contentToAppend = string.concat("| `", name, "` | ", gasUsed, " | ", solvency, " |");
-        vm.writeLine({ path: resultsFile, data: contentToAppend });
-        logGreen(string.concat(name, " (", gasUsed, " gas)"));
+    function appendRow(string memory name, string memory solvency, uint256 gasUsed) internal {
+        string memory row = string.concat("| `", name, "` | ", solvency, " | ", vm.toString(gasUsed), " |");
+        vm.writeLine({ path: RESULTS_FILE, data: row });
     }
 
     /// @dev Instrument a function call and log the gas usage to the benchmark results file.
@@ -174,18 +170,18 @@ contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
         // Simulate the passage of time.
         vm.warp(getBlockTimestamp() + 2 days);
 
+        // Run the function and instrument the gas usage.
         logBlue(string.concat("Benchmarking: ", name));
         uint256 initialGas = gasleft();
         (bool status, bytes memory revertData) = address(flow).call(payload);
-        string memory gasUsed = vm.toString(initialGas - gasleft());
-
-        // Ensure the function call was successful.
+        uint256 gasUsed = initialGas - gasleft();
         if (!status) {
             _bubbleUpRevert(revertData);
         }
+        logGreen(string.concat("Gas used: ", vm.toString(gasUsed)));
 
         // Append the row to the benchmark results file.
-        appendRow(name, gasUsed, solvency);
+        appendRow(name, solvency, gasUsed);
     }
 
     function _bubbleUpRevert(bytes memory revertData) private pure {
