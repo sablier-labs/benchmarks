@@ -27,7 +27,6 @@ contract LockupTranchedBenchmark is LockupBenchmark {
         vm.writeFile({
             path: RESULTS_FILE,
             data: string.concat(
-                "## Benchmarks for the LockupTranched model\n\n",
                 "| Function | Tranches | Configuration | Gas Usage |\n",
                 "| :------- | :------- | :------------ | :-------- |\n"
             )

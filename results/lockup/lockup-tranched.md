@@ -1,5 +1,3 @@
-## Benchmarks for the LockupTranched model
-
 | Function                 | Tranches | Configuration                          | Gas Usage |
 | :----------------------- | :------- | :------------------------------------- | :-------- |
 | `burn`                   | 2        | N/A                                    | 15,982    |

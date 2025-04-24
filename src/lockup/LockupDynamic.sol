@@ -27,7 +27,6 @@ contract LockupDynamicBenchmark is LockupBenchmark {
         vm.writeFile({
             path: RESULTS_FILE,
             data: string.concat(
-                "## Benchmarks for the LockupDynamic model\n\n",
                 "| Function | Segments | Configuration | Gas Usage |\n",
                 "| :------- | :------- | :------------ | :-------- |\n"
             )

@@ -1,5 +1,3 @@
-## Benchmarks for the LockupLinear model
-
 | Function                 | Configuration                              | Gas Usage |
 | :----------------------- | :----------------------------------------- | :-------- |
 | `burn`                   | N/A                                        | 15,982    |

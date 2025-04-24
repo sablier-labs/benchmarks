@@ -72,9 +72,7 @@ contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
         vm.writeFile({
             path: RESULTS_FILE,
             data: string.concat(
-                "## Benchmarks for SablierFlow\n\n",
                 "With USDC as the streaming token.\n\n",
-                "<!-- prettier-sort-markdown-table -->\n",
                 "| Function | Stream Solvency | Gas Usage |\n",
                 "| :------- | :-------------- | :-------- |\n"
             )

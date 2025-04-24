@@ -1,5 +1,3 @@
-## Benchmarks for BatchLockup
-
 | Lockup Model | Function                 | Batch Size | Segments/Tranches | Gas Usage  |
 | :----------- | :----------------------- | :--------- | :---------------- | :--------- |
 | Linear       | `createWithDurationsLL`  | 5          | N/A               | 943,556    |

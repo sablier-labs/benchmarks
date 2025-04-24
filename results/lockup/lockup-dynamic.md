@@ -1,5 +1,3 @@
-## Benchmarks for the LockupDynamic model
-
 | Function                 | Segments | Configuration                              | Gas Usage |
 | :----------------------- | :------- | :----------------------------------------- | :-------- |
 | `burn`                   | 2        | N/A                                        | 15,982    |

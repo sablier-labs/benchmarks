@@ -1,5 +1,3 @@
-## Benchmarks for SablierFlow
-
 With USDC as the streaming token.
 
 | Function              | Stream Solvency | Gas Usage |

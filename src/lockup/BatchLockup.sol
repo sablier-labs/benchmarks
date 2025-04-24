@@ -37,7 +37,6 @@ contract BatchLockupBenchmark is LockupBenchmark {
         vm.writeFile({
             path: RESULTS_FILE,
             data: string.concat(
-                "## Benchmarks for BatchLockup\n\n",
                 "| Lockup Model | Function | Batch Size | Segments/Tranches | Gas Usage |\n",
                 "| :----------- | :------- | :--------- | :---------------- | :-------- |\n"
             )

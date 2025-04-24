@@ -19,11 +19,7 @@ contract LockupLinearBenchmark is LockupBenchmark {
         RESULTS_FILE = "results/lockup/lockup-linear.md";
         vm.writeFile({
             path: RESULTS_FILE,
-            data: string.concat(
-                "## Benchmarks for the LockupLinear model\n\n",
-                "| Function | Configuration | Gas Usage |\n",
-                "| :------- | :------------ | :-------- |\n"
-            )
+            data: string.concat("| Function | Configuration | Gas Usage |\n", "| :------- | :------------ | :-------- |\n")
         });
     }
 
