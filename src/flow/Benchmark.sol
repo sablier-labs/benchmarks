@@ -76,7 +76,11 @@ contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
         // Create the file if it doesn't exist, otherwise overwrite it.
         vm.writeFile({
             path: resultsFile,
-            data: string.concat("# Benchmarks using 6-decimal token \n\n", "| Function | Gas Usage |\n", "| --- | --- |\n")
+            data: string.concat(
+                "# Benchmarks using 6-decimal token \n\n",
+                "| Function | Gas Usage | Stream Solvency |\n",
+                "| --- | --- | --- |\n"
+            )
         });
         logBlue("Setup complete! Ready to run benchmarks.");
     }
@@ -92,48 +96,49 @@ contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
 
         instrument(
             "adjustRatePerSecond",
+            "N/A",
             abi.encodeCall(flow.adjustRatePerSecond, (streamIds[0], ud21x18(RATE_PER_SECOND_U128 + 1)))
         );
 
         instrument(
-            "create", abi.encodeCall(flow.create, (users.sender, users.recipient, RATE_PER_SECOND, usdc, TRANSFERABLE))
+            "create",
+            "N/A",
+            abi.encodeCall(flow.create, (users.sender, users.recipient, RATE_PER_SECOND, usdc, TRANSFERABLE))
         );
         instrument(
-            "deposit", abi.encodeCall(flow.deposit, (streamIds[0], DEPOSIT_AMOUNT_6D, users.sender, users.recipient))
+            "deposit",
+            "N/A",
+            abi.encodeCall(flow.deposit, (streamIds[0], DEPOSIT_AMOUNT_6D, users.sender, users.recipient))
         );
 
-        instrument("pause", abi.encodeCall(flow.pause, (streamIds[0])));
+        instrument("pause", "N/A", abi.encodeCall(flow.pause, (streamIds[0])));
 
         /* -------------------------------- STREAM 1 -------------------------------- */
 
-        instrument("refund", abi.encodeCall(flow.refund, (streamIds[1], REFUND_AMOUNT_6D)));
+        instrument("refund", "Solvent", abi.encodeCall(flow.refund, (streamIds[1], REFUND_AMOUNT_6D)));
 
         /* -------------------------------- STREAM 2 -------------------------------- */
 
-        instrument("refundMax", abi.encodeCall(flow.refundMax, (streamIds[2])));
+        instrument("refundMax", "Solvent", abi.encodeCall(flow.refundMax, (streamIds[2])));
 
         // pause in order to instrument restart.
         flow.pause(streamIds[2]);
 
-        instrument("restart", abi.encodeCall(flow.restart, (streamIds[2], RATE_PER_SECOND)));
+        instrument("restart", "N/A", abi.encodeCall(flow.restart, (streamIds[2], RATE_PER_SECOND)));
 
-        // void a solvent stream.
-        instrument("void (solvent stream)", abi.encodeCall(flow.void, (streamIds[2])));
+        instrument("void", "Solvent", abi.encodeCall(flow.void, (streamIds[2])));
 
         /* -------------------------------- STREAM 3 -------------------------------- */
 
         // warp time to accrue uncovered debt.
-        vm.warp(flow.depletionTimeOf(streamIds[3]) + 2 days);
-
-        // void an insolvent stream.
-        instrument("void (insolvent stream)", abi.encodeCall(flow.void, (streamIds[3])));
+        vm.warp(flow.depletionTimeOf(streamIds[3]) + 3 days);
+        instrument("void", "Insolvent", abi.encodeCall(flow.void, (streamIds[3])));
 
         /* -------------------------------- STREAM 4 -------------------------------- */
 
         // withdraw from an insolvent stream.
         instrument(
-            "withdraw (insolvent stream)",
-            abi.encodeCall(flow.withdraw, (streamIds[4], users.recipient, WITHDRAW_AMOUNT_6D))
+            "withdraw", "Insolvent", abi.encodeCall(flow.withdraw, (streamIds[4], users.recipient, WITHDRAW_AMOUNT_6D))
         );
 
         /* -------------------------------- STREAM 5 -------------------------------- */
@@ -143,13 +148,12 @@ contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
 
         // withdraw from a solvent stream.
         instrument(
-            "withdraw (solvent stream)",
-            abi.encodeCall(flow.withdraw, (streamIds[5], users.recipient, WITHDRAW_AMOUNT_6D))
+            "withdraw", "Solvent", abi.encodeCall(flow.withdraw, (streamIds[5], users.recipient, WITHDRAW_AMOUNT_6D))
         );
 
         /* -------------------------------- STREAM 6 -------------------------------- */
 
-        instrument("withdrawMax", abi.encodeCall(flow.withdrawMax, (streamIds[6], users.recipient)));
+        instrument("withdrawMax", "Solvent", abi.encodeCall(flow.withdrawMax, (streamIds[6], users.recipient)));
 
         logBlue("\nCompleted all benchmarks");
     }
@@ -158,8 +162,15 @@ contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
                                       HELPERS
     //////////////////////////////////////////////////////////////////////////*/
 
+    /// @dev Appends a row to the benchmark results file.
+    function appendRow(string memory name, string memory gasUsed, string memory solvency) internal {
+        string memory contentToAppend = string.concat("| `", name, "` | ", gasUsed, " | ", solvency, " |");
+        vm.writeLine({ path: resultsFile, data: contentToAppend });
+        logGreen(string.concat(name, " (", gasUsed, " gas)"));
+    }
+
     /// @dev Instrument a function call and log the gas usage to the benchmark results file.
-    function instrument(string memory name, bytes memory payload) internal {
+    function instrument(string memory name, string memory solvency, bytes memory payload) internal {
         // Simulate the passage of time.
         vm.warp(getBlockTimestamp() + 2 days);
 
@@ -173,13 +184,11 @@ contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
             _bubbleUpRevert(revertData);
         }
 
-        // Append the gas usage to the benchmark results file.
-        string memory contentToAppend = string.concat("| `", name, "` | ", gasUsed, " |");
-        vm.writeLine({ path: resultsFile, data: contentToAppend });
-        logGreen(string.concat(name, " (", gasUsed, " gas)"));
+        // Append the row to the benchmark results file.
+        appendRow(name, gasUsed, solvency);
     }
 
-    function _bubbleUpRevert(bytes memory revertData) internal pure {
+    function _bubbleUpRevert(bytes memory revertData) private pure {
         assembly {
             // Get the length of the result stored in the first 32 bytes.
             let resultSize := mload(revertData)
