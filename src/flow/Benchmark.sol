@@ -68,7 +68,9 @@ contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
         logGreen("Funded and approved USDC");
 
         logBlue("Creating 7 stream for testing...");
-        _setUpStreams();
+        for (uint256 i = 0; i < 7; i++) {
+            streamIds[i] = _createAndFundStream();
+        }
         logGreen("Created 7 test streams");
 
         // Create the file if it doesn't exist, otherwise overwrite it.
@@ -187,7 +189,8 @@ contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
         }
     }
 
-    function _createAndFundStream() internal returns (uint256) {
+    function _createAndFundStream() private returns (uint256) {
+        // Create the stream.
         uint256 streamId = flow.create({
             sender: users.sender,
             recipient: users.recipient,
@@ -195,20 +198,12 @@ contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
             token: usdc,
             transferable: TRANSFERABLE
         });
+
+        // Fund the stream.
         uint128 depositAmount = getDefaultDepositAmount(USDC_DECIMALS);
         flow.deposit(streamId, depositAmount, users.sender, users.recipient);
+
+        // Return the stream ID.
         return streamId;
-    }
-
-    function _setUpStreams() internal {
-        for (uint256 i = 0; i < 7; i++) {
-            streamIds[i] = _createAndFundStream();
-        }
-    }
-
-    function _deposit(uint256 _streamId) internal {
-        uint8 decimals = flow.getTokenDecimals(_streamId);
-        uint128 depositAmount = getDefaultDepositAmount(decimals);
-        flow.deposit(_streamId, depositAmount, users.sender, users.recipient);
     }
 }

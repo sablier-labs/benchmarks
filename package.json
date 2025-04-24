@@ -49,14 +49,14 @@
     "benchmark:all": "bun run benchmark:flow && bun run benchmark:lockup",
     "benchmark:flow": "FOUNDRY_PROFILE=flow bun run benchmark",
     "benchmark:lockup": "FOUNDRY_PROFILE=lockup bun run benchmark",
-    "check": "bun run prettier:check && forge fmt --check && bun solhint \"src/**/*.sol\"",
+    "check": "bun run prettier:check && forge fmt --check && bun run solhint:check",
     "clean": "rm -rf cache",
-    "fix": "bun run format && bun run fix:sol",
-    "fix:sol": "bun solhint \"src/**/*.sol\" --fix --noPrompt",
-    "format": "forge fmt && bun run format:numbers && bun run prettier:write",
+    "format": "forge fmt && bun run fix:sol && bun run format:numbers && bun run prettier:write",
     "format:numbers": "node ./scripts/format-numbers.js && prettier --write \"results/**/*.md\"",
     "prepare": "husky",
     "prettier:check": "prettier --cache --check \"**/*.{js,json,md,yml}\"",
-    "prettier:write": "prettier --cache --write \"**/*.{js,json,md,yml}\""
+    "prettier:write": "prettier --cache --write \"**/*.{js,json,md,yml}\"",
+    "solhint:check": "bun solhint \"src/**/*.sol\"",
+    "solhint:write": "bun solhint \"src/**/*.sol\" --fix --noPrompt"
   }
 }
