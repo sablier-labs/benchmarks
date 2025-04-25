@@ -1,15 +1,19 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.22;
 
-import { ud, ZERO } from "@prb/math/src/UD60x18.sol";
-
-import { Lockup as L, LockupLinear as LL } from "@sablier/lockup/src/types/DataTypes.sol";
+import { Lockup, LockupLinear } from "@sablier/lockup/src/types/DataTypes.sol";
 
 import { LockupBenchmark } from "./Benchmark.sol";
 
 /// @notice Benchmarks for Lockup streams with an LL model.
 /// @dev This contract creates a Markdown file with the gas usage of each function.
 contract LockupLinearBenchmark is LockupBenchmark {
+    /*//////////////////////////////////////////////////////////////////////////
+                                  STATE VARIABLES
+    //////////////////////////////////////////////////////////////////////////*/
+
+    uint256[] internal _linearStreamIds = new uint256[](4);
+
     /*//////////////////////////////////////////////////////////////////////////
                                   SET-UP FUNCTION
     //////////////////////////////////////////////////////////////////////////*/
@@ -19,7 +23,11 @@ contract LockupLinearBenchmark is LockupBenchmark {
         RESULTS_FILE = "results/lockup/lockup-linear.md";
         vm.writeFile({
             path: RESULTS_FILE,
-            data: string.concat("| Function | Configuration | Gas Usage |\n", "| :------- | :------------ | :-------- |\n")
+            data: string.concat(
+                "With USDC as the streaming token.\n\n",
+                "| Function | Configuration | Gas Usage |\n",
+                "| :------- | :------------ | :-------- |\n"
+            )
         });
     }
 
@@ -29,27 +37,33 @@ contract LockupLinearBenchmark is LockupBenchmark {
 
     function test_LockupLinearBenchmark() external {
         logBlue("\nStarting LockupLinear benchmarks...");
+        _setUpLinearStreams();
 
         /* ---------------------------------- BURN ---------------------------------- */
         logBlue("Benchmarking: burn...");
-        instrument_Burn(streamIds[0]);
+        uint256 gasUsed = instrument_Burn(_linearStreamIds[0]);
+        _appendRow("burn", "N/A", gasUsed);
         logGreen("Completed burn benchmark");
 
         /* --------------------------------- CANCEL --------------------------------- */
 
         logBlue("Benchmarking: cancel...");
-        instrument_Cancel(streamIds[1]);
+        gasUsed = instrument_Cancel(_linearStreamIds[1]);
+        _appendRow("cancel", "N/A", gasUsed);
         logGreen("Completed cancel benchmark");
 
         /* -------------------------------- RENOUNCE -------------------------------- */
 
         logBlue("Benchmarking: renounce...");
-        instrument_Renounce(streamIds[2]);
+        gasUsed = instrument_Renounce(_linearStreamIds[2]);
+        _appendRow("renounce", "N/A", gasUsed);
         logGreen("Completed renounce benchmark");
 
         /* --------------------------------- CREATE --------------------------------- */
 
         logBlue("Benchmarking: create with different cliffs...");
+
+        // For the following two instrumentations, `_appendRow` is called within the functions.
         instrument_CreateWithDurationsLL({ cliffDuration: 0 });
         instrument_CreateWithDurationsLL({ cliffDuration: defaults.CLIFF_DURATION() });
         instrument_CreateWithTimestampsLL({ cliffTime: 0 });
@@ -59,10 +73,16 @@ contract LockupLinearBenchmark is LockupBenchmark {
         /* -------------------------------- WITHDRAW -------------------------------- */
 
         logBlue("Benchmarking: withdraw...");
-        instrument_WithdrawOngoing(streamIds[3], users.recipient);
-        instrument_WithdrawCompleted(streamIds[4], users.recipient);
-        instrument_WithdrawOngoing(streamIds[5], users.alice);
-        instrument_WithdrawCompleted(streamIds[6], users.alice);
+        _setUpLinearStreams();
+        (gasUsed, config) = instrument_WithdrawOngoing(_linearStreamIds[0], users.recipient);
+        _appendRow("withdraw", config, gasUsed);
+        (gasUsed, config) = instrument_WithdrawCompleted(_linearStreamIds[1], users.recipient);
+        _appendRow("withdraw", config, gasUsed);
+        (gasUsed, config) = instrument_WithdrawOngoing(_linearStreamIds[2], users.alice);
+        _appendRow("withdraw", config, gasUsed);
+        (gasUsed, config) = instrument_WithdrawCompleted(_linearStreamIds[3], users.alice);
+        _appendRow("withdraw", config, gasUsed);
+
         logGreen("Completed withdraw benchmarks");
 
         logBlue("\nCompleted all benchmarks");
@@ -72,41 +92,15 @@ contract LockupLinearBenchmark is LockupBenchmark {
                              INSTRUMENTATION FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
-    function instrument_Burn(uint256 streamId) internal {
-        resetPrank({ msgSender: users.recipient });
-        vm.warp({ newTimestamp: defaults.END_TIME() });
-
-        lockup.withdrawMax(streamId, users.recipient);
-
-        uint256 initialGas = gasleft();
-        lockup.burn(streamId);
-        uint256 gasUsed = initialGas - gasleft();
-
-        _appendRow("burn", "N/A", gasUsed);
-    }
-
-    function instrument_Cancel(uint256 streamId) internal {
-        resetPrank({ msgSender: users.sender });
-        vm.warp({ newTimestamp: defaults.WARP_26_PERCENT() });
-
-        uint256 initialGas = gasleft();
-        lockup.cancel(streamId);
-        uint256 gasUsed = initialGas - gasleft();
-
-        _appendRow("cancel", "N/A", gasUsed);
-    }
-
     function instrument_CreateWithDurationsLL(uint40 cliffDuration) internal {
         resetPrank({ msgSender: users.sender });
         vm.warp({ newTimestamp: defaults.START_TIME() });
 
-        L.CreateWithDurations memory params = defaults.createWithDurations();
-        LL.Durations memory durations = defaults.durations();
-        params.broker.fee = ZERO;
-        params.totalAmount = defaults.DEPOSIT_AMOUNT();
+        Lockup.CreateWithDurations memory params = defaults.createWithDurationsBrokerNull();
+        LockupLinear.Durations memory durations = defaults.durations();
         durations.cliff = cliffDuration;
 
-        LL.UnlockAmounts memory unlockAmounts = defaults.unlockAmounts();
+        LockupLinear.UnlockAmounts memory unlockAmounts = defaults.unlockAmounts();
         if (cliffDuration == 0) unlockAmounts.cliff = 0;
 
         uint256 beforeGas = gasleft();
@@ -120,11 +114,9 @@ contract LockupLinearBenchmark is LockupBenchmark {
     function instrument_CreateWithTimestampsLL(uint40 cliffTime) internal {
         resetPrank({ msgSender: users.sender });
 
-        L.CreateWithTimestamps memory params = defaults.createWithTimestamps();
-        params.broker.fee = ud(0);
-        params.totalAmount = defaults.DEPOSIT_AMOUNT();
+        Lockup.CreateWithTimestamps memory params = defaults.createWithTimestampsBrokerNull();
 
-        LL.UnlockAmounts memory unlockAmounts = defaults.unlockAmounts();
+        LockupLinear.UnlockAmounts memory unlockAmounts = defaults.unlockAmounts();
         if (cliffTime == 0) unlockAmounts.cliff = 0;
 
         uint256 beforeGas = gasleft();
@@ -135,40 +127,6 @@ contract LockupLinearBenchmark is LockupBenchmark {
         _appendRow("createWithTimestampsLL", cliffConfig, gasUsed);
     }
 
-    function instrument_Renounce(uint256 streamId) internal {
-        resetPrank({ msgSender: users.sender });
-        vm.warp({ newTimestamp: defaults.WARP_26_PERCENT() });
-
-        uint256 initialGas = gasleft();
-        lockup.renounce(streamId);
-        uint256 gasUsed = initialGas - gasleft();
-
-        _appendRow("renounce", "N/A", gasUsed);
-    }
-
-    function instrument_Withdraw(uint256 streamId, address caller, string memory config) internal {
-        uint256 gasUsed = withdraw({ streamId: streamId, caller: caller, to: users.recipient });
-        _appendRow("withdraw", config, gasUsed);
-    }
-
-    function instrument_WithdrawOngoing(uint256 streamId, address caller) internal {
-        vm.warp({ newTimestamp: defaults.END_TIME() - 1 seconds });
-        if (caller == users.recipient) {
-            instrument_Withdraw(streamId, caller, "vesting ongoing && called by recipient");
-        } else {
-            instrument_Withdraw(streamId, caller, "vesting ongoing && called by third-party");
-        }
-    }
-
-    function instrument_WithdrawCompleted(uint256 streamId, address caller) internal {
-        vm.warp({ newTimestamp: defaults.END_TIME() + 1 seconds });
-        if (caller == users.recipient) {
-            instrument_Withdraw(streamId, caller, "vesting completed && called by recipient");
-        } else {
-            instrument_Withdraw(streamId, caller, "vesting completed && called by third-party");
-        }
-    }
-
     /*//////////////////////////////////////////////////////////////////////////
                                       HELPERS
     //////////////////////////////////////////////////////////////////////////*/
@@ -177,5 +135,33 @@ contract LockupLinearBenchmark is LockupBenchmark {
     function _appendRow(string memory functionName, string memory configuration, uint256 gasUsed) private {
         string memory row = string.concat("| `", functionName, "` | ", configuration, " | ", vm.toString(gasUsed), " |");
         vm.writeLine({ path: RESULTS_FILE, data: row });
+    }
+
+    function _setUpLinearStreams() private {
+        resetPrank({ msgSender: users.sender });
+
+        Lockup.CreateWithTimestamps memory params = defaults.createWithTimestampsBrokerNull();
+
+        _linearStreamIds[0] = lockup.createWithTimestampsLL({
+            params: params,
+            unlockAmounts: defaults.unlockAmounts(),
+            cliffTime: defaults.CLIFF_TIME()
+        });
+        _linearStreamIds[1] = lockup.createWithTimestampsLL({
+            params: params,
+            unlockAmounts: defaults.unlockAmounts(),
+            cliffTime: defaults.CLIFF_TIME()
+        });
+
+        _linearStreamIds[2] = lockup.createWithTimestampsLL({
+            params: params,
+            unlockAmounts: defaults.unlockAmounts(),
+            cliffTime: defaults.CLIFF_TIME()
+        });
+        _linearStreamIds[3] = lockup.createWithTimestampsLL({
+            params: params,
+            unlockAmounts: defaults.unlockAmounts(),
+            cliffTime: defaults.CLIFF_TIME()
+        });
     }
 }

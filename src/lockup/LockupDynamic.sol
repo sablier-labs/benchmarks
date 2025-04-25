@@ -2,8 +2,7 @@
 pragma solidity >=0.8.22;
 
 import { ud2x18 } from "@prb/math/src/UD2x18.sol";
-import { ZERO } from "@prb/math/src/UD60x18.sol";
-import { Lockup as L, LockupDynamic as LD } from "@sablier/lockup/src/types/DataTypes.sol";
+import { Lockup, LockupDynamic } from "@sablier/lockup/src/types/DataTypes.sol";
 
 import { LockupBenchmark } from "./Benchmark.sol";
 
@@ -27,6 +26,7 @@ contract LockupDynamicBenchmark is LockupBenchmark {
         vm.writeFile({
             path: RESULTS_FILE,
             data: string.concat(
+                "With USDC as the streaming token.\n\n",
                 "| Function | Segments | Configuration | Gas Usage |\n",
                 "| :------- | :------- | :------------ | :-------- |\n"
             )
@@ -39,23 +39,27 @@ contract LockupDynamicBenchmark is LockupBenchmark {
 
     function test_LockupDynamicBenchmark() external {
         logBlue("\nStarting LockupDynamic benchmarks...");
+        _setUpDynamicStreams({ segmentCount: 2 });
 
         /* ---------------------------------- BURN ---------------------------------- */
 
         logBlue("Benchmarking: burn...");
-        instrument_Burn(streamIds[0]);
+        gasUsed = instrument_Burn(_dynamicStreamIds[0]);
+        _appendRow("burn", defaults.SEGMENT_COUNT(), "N/A", gasUsed);
         logGreen("Completed burn benchmark");
 
         /* --------------------------------- CANCEL --------------------------------- */
 
         logBlue("Benchmarking: cancel...");
-        instrument_Cancel(streamIds[1]);
+        gasUsed = instrument_Cancel(_dynamicStreamIds[1]);
+        _appendRow("cancel", defaults.SEGMENT_COUNT(), "N/A", gasUsed);
         logGreen("Completed cancel benchmark");
 
         /* -------------------------------- RENOUNCE -------------------------------- */
 
         logBlue("Benchmarking: renounce...");
-        instrument_Renounce(streamIds[2]);
+        gasUsed = instrument_Renounce(_dynamicStreamIds[2]);
+        _appendRow("renounce", defaults.SEGMENT_COUNT(), "N/A", gasUsed);
         logGreen("Completed renounce benchmark");
 
         /* ---------------------------- CREATE & WITHDRAW --------------------------- */
@@ -64,14 +68,19 @@ contract LockupDynamicBenchmark is LockupBenchmark {
         for (uint256 i; i < _segmentCounts.length; ++i) {
             logBlue(string.concat("Benchmarking with ", vm.toString(_segmentCounts[i]), " segments..."));
 
+            // For the following two instrumentations, `_appendRow` is called within the functions.
             instrument_CreateWithDurationsLD(_segmentCounts[i]);
             instrument_CreateWithTimestampsLD(_segmentCounts[i]);
 
             _setUpDynamicStreams(_segmentCounts[i]);
-            instrument_WithdrawOngoing(_dynamicStreamIds[0], users.recipient, _segmentCounts[i]);
-            instrument_WithdrawCompleted(_dynamicStreamIds[1], users.recipient, _segmentCounts[i]);
-            instrument_WithdrawOngoing(_dynamicStreamIds[2], users.alice, _segmentCounts[i]);
-            instrument_WithdrawCompleted(_dynamicStreamIds[3], users.alice, _segmentCounts[i]);
+            (gasUsed, config) = instrument_WithdrawOngoing(_dynamicStreamIds[0], users.recipient);
+            _appendRow("withdraw", _segmentCounts[i], config, gasUsed);
+            (gasUsed, config) = instrument_WithdrawCompleted(_dynamicStreamIds[1], users.recipient);
+            _appendRow("withdraw", _segmentCounts[i], config, gasUsed);
+            (gasUsed, config) = instrument_WithdrawOngoing(_dynamicStreamIds[2], users.alice);
+            _appendRow("withdraw", _segmentCounts[i], config, gasUsed);
+            (gasUsed, config) = instrument_WithdrawCompleted(_dynamicStreamIds[3], users.alice);
+            _appendRow("withdraw", _segmentCounts[i], config, gasUsed);
 
             logGreen(string.concat("Completed benchmarks with ", vm.toString(_segmentCounts[i]), " segments"));
         }
@@ -84,35 +93,11 @@ contract LockupDynamicBenchmark is LockupBenchmark {
                              INSTRUMENTATION FUNCTIONS
     //////////////////////////////////////////////////////////////////////////*/
 
-    function instrument_Burn(uint256 streamId) internal {
-        resetPrank({ msgSender: users.recipient });
-        vm.warp({ newTimestamp: defaults.END_TIME() });
-
-        lockup.withdrawMax(streamId, users.recipient);
-
-        uint256 initialGas = gasleft();
-        lockup.burn(streamId);
-        uint256 gasUsed = initialGas - gasleft();
-
-        _appendRow("burn", defaults.SEGMENT_COUNT(), "N/A", gasUsed);
-    }
-
-    function instrument_Cancel(uint256 streamId) internal {
-        resetPrank({ msgSender: users.sender });
-        vm.warp({ newTimestamp: defaults.WARP_26_PERCENT() });
-
-        uint256 initialGas = gasleft();
-        lockup.cancel(streamId);
-        uint256 gasUsed = initialGas - gasleft();
-
-        _appendRow("cancel", defaults.SEGMENT_COUNT(), "N/A", gasUsed);
-    }
-
     function instrument_CreateWithDurationsLD(uint128 segmentCount) internal {
         resetPrank({ msgSender: users.sender });
         vm.warp({ newTimestamp: defaults.START_TIME() });
 
-        (L.CreateWithDurations memory params, LD.SegmentWithDuration[] memory segments) =
+        (Lockup.CreateWithDurations memory params, LockupDynamic.SegmentWithDuration[] memory segments) =
             _paramsCreateWithDurationLD(segmentCount);
         uint256 beforeGas = gasleft();
         lockup.createWithDurationsLD(params, segments);
@@ -124,7 +109,7 @@ contract LockupDynamicBenchmark is LockupBenchmark {
     function instrument_CreateWithTimestampsLD(uint128 segmentCount) internal {
         resetPrank({ msgSender: users.sender });
 
-        (L.CreateWithTimestamps memory params, LD.Segment[] memory segments) =
+        (Lockup.CreateWithTimestamps memory params, LockupDynamic.Segment[] memory segments) =
             _paramsCreateWithTimestampsLD(segmentCount);
 
         uint256 beforeGas = gasleft();
@@ -132,47 +117,6 @@ contract LockupDynamicBenchmark is LockupBenchmark {
         uint256 gasUsed = beforeGas - gasleft();
 
         _appendRow("createWithTimestampsLD", segmentCount, "N/A", gasUsed);
-    }
-
-    function instrument_Renounce(uint256 streamId) internal {
-        resetPrank({ msgSender: users.sender });
-        vm.warp({ newTimestamp: defaults.WARP_26_PERCENT() });
-
-        uint256 initialGas = gasleft();
-        lockup.renounce(streamId);
-        uint256 gasUsed = initialGas - gasleft();
-
-        _appendRow("renounce", defaults.SEGMENT_COUNT(), "N/A", gasUsed);
-    }
-
-    function instrument_Withdraw(
-        uint256 streamId,
-        address caller,
-        uint256 segmentCount,
-        string memory config
-    )
-        internal
-    {
-        uint256 gasUsed = withdraw({ streamId: streamId, caller: caller, to: users.recipient });
-        _appendRow("withdraw", segmentCount, config, gasUsed);
-    }
-
-    function instrument_WithdrawOngoing(uint256 streamId, address caller, uint256 segmentCount) internal {
-        vm.warp({ newTimestamp: defaults.END_TIME() - 1 seconds });
-        if (caller == users.recipient) {
-            instrument_Withdraw(streamId, caller, segmentCount, "vesting ongoing && called by recipient");
-        } else {
-            instrument_Withdraw(streamId, caller, segmentCount, "vesting ongoing && called by third-party");
-        }
-    }
-
-    function instrument_WithdrawCompleted(uint256 streamId, address caller, uint256 segmentCount) internal {
-        vm.warp({ newTimestamp: defaults.END_TIME() + 1 seconds });
-        if (caller == users.recipient) {
-            instrument_Withdraw(streamId, caller, segmentCount, "vesting completed && called by recipient");
-        } else {
-            instrument_Withdraw(streamId, caller, segmentCount, "vesting completed && called by third-party");
-        }
     }
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -197,13 +141,13 @@ contract LockupDynamicBenchmark is LockupBenchmark {
     function _paramsCreateWithDurationLD(uint128 segmentCount)
         private
         view
-        returns (L.CreateWithDurations memory params, LD.SegmentWithDuration[] memory segments_)
+        returns (Lockup.CreateWithDurations memory params, LockupDynamic.SegmentWithDuration[] memory segments_)
     {
-        segments_ = new LD.SegmentWithDuration[](segmentCount);
+        segments_ = new LockupDynamic.SegmentWithDuration[](segmentCount);
 
         for (uint256 i = 0; i < segmentCount; ++i) {
             segments_[i] = (
-                LD.SegmentWithDuration({
+                LockupDynamic.SegmentWithDuration({
                     amount: AMOUNT_PER_SEGMENT,
                     exponent: ud2x18(0.5e18),
                     duration: defaults.CLIFF_DURATION()
@@ -213,22 +157,21 @@ contract LockupDynamicBenchmark is LockupBenchmark {
 
         uint128 depositAmount = AMOUNT_PER_SEGMENT * segmentCount;
 
-        params = defaults.createWithDurations();
+        params = defaults.createWithDurationsBrokerNull();
         params.totalAmount = depositAmount;
-        params.broker.fee = ZERO;
         return (params, segments_);
     }
 
     function _paramsCreateWithTimestampsLD(uint128 segmentCount)
         private
         view
-        returns (L.CreateWithTimestamps memory params, LD.Segment[] memory segments_)
+        returns (Lockup.CreateWithTimestamps memory params, LockupDynamic.Segment[] memory segments_)
     {
-        segments_ = new LD.Segment[](segmentCount);
+        segments_ = new LockupDynamic.Segment[](segmentCount);
 
         for (uint256 i = 0; i < segmentCount; ++i) {
             segments_[i] = (
-                LD.Segment({
+                LockupDynamic.Segment({
                     amount: AMOUNT_PER_SEGMENT,
                     exponent: ud2x18(0.5e18),
                     timestamp: getBlockTimestamp() + uint40(defaults.CLIFF_DURATION() * (1 + i))
@@ -238,17 +181,16 @@ contract LockupDynamicBenchmark is LockupBenchmark {
 
         uint128 depositAmount = AMOUNT_PER_SEGMENT * segmentCount;
 
-        params = defaults.createWithTimestamps();
+        params = defaults.createWithTimestampsBrokerNull();
         params.totalAmount = depositAmount;
         params.timestamps.start = getBlockTimestamp();
         params.timestamps.end = segments_[segmentCount - 1].timestamp;
-        params.broker.fee = ZERO;
         return (params, segments_);
     }
 
     function _setUpDynamicStreams(uint128 segmentCount) private {
         resetPrank({ msgSender: users.sender });
-        (L.CreateWithDurations memory params, LD.SegmentWithDuration[] memory segments) =
+        (Lockup.CreateWithDurations memory params, LockupDynamic.SegmentWithDuration[] memory segments) =
             _paramsCreateWithDurationLD(segmentCount);
         _dynamicStreamIds[0] = lockup.createWithDurationsLD(params, segments);
         _dynamicStreamIds[1] = lockup.createWithDurationsLD(params, segments);

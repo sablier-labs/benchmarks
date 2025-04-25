@@ -20,15 +20,15 @@ contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
     uint8 internal constant USDC_DECIMALS = 6;
     string internal RESULTS_FILE = "results/flow/flow.md";
 
-    uint256[7] internal streamIds;
+    uint256[8] internal streamIds;
     Users internal users;
 
     /*//////////////////////////////////////////////////////////////////////////
                                       CONTRACTS
     //////////////////////////////////////////////////////////////////////////*/
 
-    IERC20 internal usdc;
     ISablierFlow internal flow;
+    IERC20 internal usdc;
 
     /*//////////////////////////////////////////////////////////////////////////
                                   SET-UP FUNCTION
@@ -65,7 +65,7 @@ contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
         logGreen("Funded and approved USDC");
 
         // Create test streams.
-        for (uint256 i = 0; i < 7; i++) {
+        for (uint256 i = 0; i < 8; i++) {
             streamIds[i] = _createAndFundStream();
         }
         logGreen("Created 7 test streams");
@@ -89,12 +89,12 @@ contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
     function test_FlowBenchmark() external {
         logBlue("\nStarting Flow benchmarks...");
 
-        /* -------------------------------- STREAM 0 -------------------------------- */
+        /* -------------------------------- STREAM 1 -------------------------------- */
 
         instrument(
             "adjustRatePerSecond",
             "N/A",
-            abi.encodeCall(flow.adjustRatePerSecond, (streamIds[0], ud21x18(RATE_PER_SECOND_U128 + 1)))
+            abi.encodeCall(flow.adjustRatePerSecond, (streamIds[1], ud21x18(RATE_PER_SECOND_U128 + 1)))
         );
 
         instrument(
@@ -105,52 +105,52 @@ contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
         instrument(
             "deposit",
             "N/A",
-            abi.encodeCall(flow.deposit, (streamIds[0], DEPOSIT_AMOUNT_6D, users.sender, users.recipient))
+            abi.encodeCall(flow.deposit, (streamIds[1], DEPOSIT_AMOUNT_6D, users.sender, users.recipient))
         );
 
-        instrument("pause", "N/A", abi.encodeCall(flow.pause, (streamIds[0])));
-
-        /* -------------------------------- STREAM 1 -------------------------------- */
-
-        instrument("refund", "Solvent", abi.encodeCall(flow.refund, (streamIds[1], REFUND_AMOUNT_6D)));
+        instrument("pause", "N/A", abi.encodeCall(flow.pause, (streamIds[1])));
 
         /* -------------------------------- STREAM 2 -------------------------------- */
 
-        instrument("refundMax", "Solvent", abi.encodeCall(flow.refundMax, (streamIds[2])));
-
-        // pause in order to instrument restart.
-        flow.pause(streamIds[2]);
-
-        instrument("restart", "N/A", abi.encodeCall(flow.restart, (streamIds[2], RATE_PER_SECOND)));
-
-        instrument("void", "Solvent", abi.encodeCall(flow.void, (streamIds[2])));
+        instrument("refund", "Solvent", abi.encodeCall(flow.refund, (streamIds[2], REFUND_AMOUNT_6D)));
 
         /* -------------------------------- STREAM 3 -------------------------------- */
 
-        // warp time to accrue uncovered debt.
-        vm.warp(flow.depletionTimeOf(streamIds[3]) + 3 days);
-        instrument("void", "Insolvent", abi.encodeCall(flow.void, (streamIds[3])));
+        instrument("refundMax", "Solvent", abi.encodeCall(flow.refundMax, (streamIds[3])));
+
+        // pause in order to instrument restart.
+        flow.pause(streamIds[3]);
+
+        instrument("restart", "N/A", abi.encodeCall(flow.restart, (streamIds[3], RATE_PER_SECOND)));
+
+        instrument("void", "Solvent", abi.encodeCall(flow.void, (streamIds[3])));
 
         /* -------------------------------- STREAM 4 -------------------------------- */
 
-        // withdraw from an insolvent stream.
-        instrument(
-            "withdraw", "Insolvent", abi.encodeCall(flow.withdraw, (streamIds[4], users.recipient, WITHDRAW_AMOUNT_6D))
-        );
+        // warp time to accrue uncovered debt.
+        vm.warp(flow.depletionTimeOf(streamIds[4]) + 3 days);
+        instrument("void", "Insolvent", abi.encodeCall(flow.void, (streamIds[4])));
 
         /* -------------------------------- STREAM 5 -------------------------------- */
 
-        uint128 depositAmount = uint128(flow.uncoveredDebtOf(streamIds[5])) + DEPOSIT_AMOUNT_6D;
-        flow.deposit(streamIds[5], depositAmount, users.sender, users.recipient);
-
-        // withdraw from a solvent stream.
+        // withdraw from an insolvent stream.
         instrument(
-            "withdraw", "Solvent", abi.encodeCall(flow.withdraw, (streamIds[5], users.recipient, WITHDRAW_AMOUNT_6D))
+            "withdraw", "Insolvent", abi.encodeCall(flow.withdraw, (streamIds[5], users.recipient, WITHDRAW_AMOUNT_6D))
         );
 
         /* -------------------------------- STREAM 6 -------------------------------- */
 
-        instrument("withdrawMax", "Solvent", abi.encodeCall(flow.withdrawMax, (streamIds[6], users.recipient)));
+        uint128 depositAmount = uint128(flow.uncoveredDebtOf(streamIds[6])) + DEPOSIT_AMOUNT_6D;
+        flow.deposit(streamIds[6], depositAmount, users.sender, users.recipient);
+
+        // withdraw from a solvent stream.
+        instrument(
+            "withdraw", "Solvent", abi.encodeCall(flow.withdraw, (streamIds[6], users.recipient, WITHDRAW_AMOUNT_6D))
+        );
+
+        /* -------------------------------- STREAM 7 -------------------------------- */
+
+        instrument("withdrawMax", "Solvent", abi.encodeCall(flow.withdrawMax, (streamIds[7], users.recipient)));
 
         logBlue("\nCompleted all benchmarks");
     }

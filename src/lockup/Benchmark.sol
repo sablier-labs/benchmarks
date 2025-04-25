@@ -5,7 +5,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ISablierBatchLockup } from "@sablier/lockup/src/interfaces/ISablierBatchLockup.sol";
 import { ISablierLockup } from "@sablier/lockup/src/interfaces/ISablierLockup.sol";
 import { Defaults } from "@sablier/lockup/tests/utils/Defaults.sol";
-import { Lockup as L } from "@sablier/lockup/src/types/DataTypes.sol";
+import { Lockup } from "@sablier/lockup/src/types/DataTypes.sol";
 import { Users } from "@sablier/lockup/tests/utils/Types.sol";
 import { Utils } from "@sablier/lockup/tests/utils/Utils.sol";
 import { StdCheats } from "forge-std/src/StdCheats.sol";
@@ -26,11 +26,13 @@ abstract contract LockupBenchmark is Logger, StdCheats, Utils {
     /// @dev The name of the file where the benchmark results are stored. Each derived contract must set this.
     string internal RESULTS_FILE;
 
+    /// @dev A variable used to store the stream configuration.
+    string internal config;
+
     /// @dev A variable used to store the content to append to the results file.
     string internal contentToAppend;
 
-    uint256[7] internal streamIds;
-
+    uint256 internal gasUsed;
     Users internal users;
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -38,9 +40,9 @@ abstract contract LockupBenchmark is Logger, StdCheats, Utils {
     //////////////////////////////////////////////////////////////////////////*/
 
     ISablierBatchLockup internal batchLockup;
-    IERC20 internal dai;
     Defaults internal defaults;
     ISablierLockup internal lockup;
+    IERC20 internal usdc;
 
     /*//////////////////////////////////////////////////////////////////////////
                                   SET-UP FUNCTION
@@ -64,9 +66,9 @@ abstract contract LockupBenchmark is Logger, StdCheats, Utils {
         lockup = ISablierLockup(0x7C01AA3783577E15fD7e272443D44B92d5b21056);
         logGreen("Loaded Sablier contracts");
 
-        // Load DAI token.
-        dai = IERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F);
-        logGreen("Loaded DAI token contract");
+        // Load USDC token.
+        usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+        logGreen("Loaded USDC token contract");
 
         // Create some users.
         users.alice = payable(makeAddr("alice"));
@@ -74,14 +76,14 @@ abstract contract LockupBenchmark is Logger, StdCheats, Utils {
         users.sender = payable(makeAddr("sender"));
         logGreen("Created test users");
 
-        deal({ token: address(dai), to: users.sender, give: type(uint128).max });
+        deal({ token: address(usdc), to: users.sender, give: type(uint128).max });
         resetPrank({ msgSender: users.sender });
-        dai.approve(address(batchLockup), type(uint128).max);
-        dai.approve(address(lockup), type(uint128).max);
-        logGreen("Funded and approved DAI");
+        usdc.approve(address(batchLockup), type(uint128).max);
+        usdc.approve(address(lockup), type(uint128).max);
+        logGreen("Funded and approved USDC");
 
         defaults = new Defaults();
-        defaults.setToken(dai);
+        defaults.setToken(usdc);
         defaults.setUsers(users);
 
         _setUpStreams();
@@ -93,13 +95,40 @@ abstract contract LockupBenchmark is Logger, StdCheats, Utils {
                                     SHARED LOGIC
     //////////////////////////////////////////////////////////////////////////*/
 
-    function withdraw(uint256 streamId, address caller, address to) internal returns (uint256 gasUsed) {
-        resetPrank({ msgSender: caller });
+    function instrument_Burn(uint256 streamId) internal returns (uint256) {
+        resetPrank({ msgSender: users.recipient });
+        // Warp to the end of the stream.
+        vm.warp({ newTimestamp: lockup.getEndTime(streamId) });
 
-        // If caller is not the recipient, the withdrawal address must be the recipient.
-        if (caller != users.recipient) {
-            to = users.recipient;
-        }
+        lockup.withdrawMax(streamId, users.recipient);
+
+        uint256 initialGas = gasleft();
+        lockup.burn(streamId);
+        return initialGas - gasleft();
+    }
+
+    function instrument_Cancel(uint256 streamId) internal returns (uint256) {
+        resetPrank({ msgSender: users.sender });
+        // Warp to right before the end of the stream.
+        vm.warp({ newTimestamp: lockup.getEndTime(streamId) - 1 seconds });
+
+        uint256 initialGas = gasleft();
+        lockup.cancel(streamId);
+        return initialGas - gasleft();
+    }
+
+    function instrument_Renounce(uint256 streamId) internal returns (uint256) {
+        resetPrank({ msgSender: users.sender });
+        // Warp to halfway through the stream.
+        vm.warp({ newTimestamp: lockup.getEndTime(streamId) / 2 });
+
+        uint256 initialGas = gasleft();
+        lockup.renounce(streamId);
+        return initialGas - gasleft();
+    }
+
+    function instrument_Withdraw(uint256 streamId, address caller) internal returns (uint256) {
+        resetPrank({ msgSender: caller });
 
         uint128 withdrawAmount = lockup.withdrawableAmountOf(streamId);
         if (withdrawAmount == 0) {
@@ -107,32 +136,50 @@ abstract contract LockupBenchmark is Logger, StdCheats, Utils {
         }
 
         uint256 initialGas = gasleft();
-        lockup.withdraw(streamId, to, withdrawAmount);
+        lockup.withdraw(streamId, users.recipient, withdrawAmount);
         return initialGas - gasleft();
+    }
+
+    function instrument_WithdrawCompleted(uint256 streamId, address caller) internal returns (uint256, string memory) {
+        // Warp to right past the end of the stream.
+        vm.warp({ newTimestamp: lockup.getEndTime(streamId) + 1 seconds });
+        if (caller == users.recipient) {
+            config = "vesting completed && called by recipient";
+        } else {
+            config = "vesting completed && called by third-party";
+        }
+
+        gasUsed = instrument_Withdraw(streamId, caller);
+        return (gasUsed, config);
+    }
+
+    function instrument_WithdrawOngoing(uint256 streamId, address caller) internal returns (uint256, string memory) {
+        // Warp to right before the end of the stream.
+        vm.warp({ newTimestamp: lockup.getEndTime(streamId) - 1 seconds });
+        if (caller == users.recipient) {
+            config = "vesting ongoing && called by recipient";
+        } else {
+            config = "vesting ongoing && called by third-party";
+        }
+
+        gasUsed = instrument_Withdraw(streamId, caller);
+        return (gasUsed, config);
     }
 
     /*//////////////////////////////////////////////////////////////////////////
                                       HELPERS
     //////////////////////////////////////////////////////////////////////////*/
 
-    /// @dev Private function to creates a few streams in each Lockup contract.
+    /// @dev Private function to create one stream with each model. These streams will help in initializing the state
+    /// variables.
     function _setUpStreams() private {
-        L.CreateWithTimestamps memory params = defaults.createWithTimestamps();
-
-        streamIds[0] = lockup.createWithTimestampsLD({ params: params, segments: defaults.segments() });
-        streamIds[1] = lockup.createWithTimestampsLD({ params: params, segments: defaults.segments() });
-        streamIds[2] = lockup.createWithTimestampsLL({
+        Lockup.CreateWithTimestamps memory params = defaults.createWithTimestampsBrokerNull();
+        lockup.createWithTimestampsLD({ params: params, segments: defaults.segments() });
+        lockup.createWithTimestampsLL({
             params: params,
             unlockAmounts: defaults.unlockAmounts(),
             cliffTime: defaults.CLIFF_TIME()
         });
-        streamIds[3] = lockup.createWithTimestampsLL({
-            params: params,
-            unlockAmounts: defaults.unlockAmounts(),
-            cliffTime: defaults.CLIFF_TIME()
-        });
-        streamIds[4] = lockup.createWithTimestampsLT({ params: params, tranches: defaults.tranches() });
-        streamIds[5] = lockup.createWithTimestampsLT({ params: params, tranches: defaults.tranches() });
-        streamIds[6] = lockup.createWithTimestampsLT({ params: params, tranches: defaults.tranches() });
+        lockup.createWithTimestampsLT({ params: params, tranches: defaults.tranches() });
     }
 }
