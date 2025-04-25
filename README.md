@@ -1,20 +1,23 @@
 # Benchmarks
 
-This repo contains [solidity code](/contracts) to generate gas benchmark table for Lockup, Flow and Airdrops smart
-contracts.
+This repo contains benchmarks for:
 
-The resulting benchmark table is located in [results](/results) folder.
+- [Sablier Lockup](https://github.com/sablier-labs/lockup)
+- [Sablier Flow](https://github.com/sablier-labs/flow)
+- [Sablier Airdrops](https://github.com/sablier-labs/airdrops)
+
+The benchmark tables are located in the [results](/results) folder, but they can also be viewed on
+[docs.sablier.com](https://docs.sablier.com).
 
 ## Commands
 
-To generate the benchmark table for [Lockup contract](https://github.com/sablier-labs/lockup), run the following
-command:
+To generate the benchmark table for [Sablier Lockup](https://github.com/sablier-labs/lockup), run the following command:
 
 ```bash
 bun run benchmark:lockup
 ```
 
-To generate the benchmark table for [Flow contract](https://github.com/sablier-labs/flow), run the following command:
+To generate the benchmark table for [Sablier Flow](https://github.com/sablier-labs/flow), run the following command:
 
 ```bash
 bun run benchmark:flow

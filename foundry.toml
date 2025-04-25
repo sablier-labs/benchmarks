@@ -3,23 +3,20 @@
   auto_detect_solc = false
   bytecode_hash = "none"
   evm_version = "shanghai"
-  fs_permissions = [
-    { access = "read-write", path = "./results" }
-  ]
+  fs_permissions = [{ access = "read-write", path = "./results" }]
   gas_limit = 9223372036854775807
   optimizer = true
   optimizer_runs = 1000
   out = "out"
-  sender = "0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38"
   solc = "0.8.26"
 
 [profile.flow]
-  src = "contracts/flow"
-  test = "contracts/flow"
+  src = "src/flow"
+  test = "src/flow"
 
 [profile.lockup]
-  src = "contracts/lockup"
-  test = "contracts/lockup"
+  src = "src/lockup"
+  test = "src/lockup"
 
 [fmt]
   bracket_spacing = true
