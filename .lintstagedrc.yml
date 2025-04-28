@@ -4,5 +4,5 @@
   - "node ./scripts/format-numbers.js"
   - "prettier --cache --write"
 "*.sol":
-  - "bun run solhint:write"
+  - "bun run solhint:fix"
   - "forge fmt"

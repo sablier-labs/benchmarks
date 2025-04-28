@@ -58,6 +58,6 @@
     "prettier:check": "prettier --cache --check \"**/*.{js,json,md,yml}\"",
     "prettier:write": "prettier --cache --write \"**/*.{js,json,md,yml}\"",
     "solhint:check": "bun solhint \"src/**/*.sol\"",
-    "solhint:write": "bun solhint \"src/**/*.sol\" --fix --noPrompt"
+    "solhint:fix": "bun solhint \"src/**/*.sol\" --fix --noPrompt"
   }
 }
