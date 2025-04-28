@@ -26,13 +26,9 @@ abstract contract LockupBenchmark is Logger, StdCheats, Utils {
     /// @dev The name of the file where the benchmark results are stored. Each derived contract must set this.
     string internal RESULTS_FILE;
 
-    /// @dev A variable used to store the stream configuration.
-    string internal config;
-
     /// @dev A variable used to store the content to append to the results file.
     string internal contentToAppend;
 
-    uint256 internal gasUsed;
     Users internal users;
 
     /*//////////////////////////////////////////////////////////////////////////
@@ -95,7 +91,7 @@ abstract contract LockupBenchmark is Logger, StdCheats, Utils {
                                     SHARED LOGIC
     //////////////////////////////////////////////////////////////////////////*/
 
-    function instrument_Burn(uint256 streamId) internal returns (uint256) {
+    function instrument_Burn(uint256 streamId) internal returns (uint256 gasUsed) {
         resetPrank({ msgSender: users.recipient });
         // Warp to the end of the stream.
         vm.warp({ newTimestamp: lockup.getEndTime(streamId) });
@@ -104,30 +100,30 @@ abstract contract LockupBenchmark is Logger, StdCheats, Utils {
 
         uint256 initialGas = gasleft();
         lockup.burn(streamId);
-        return initialGas - gasleft();
+        gasUsed = initialGas - gasleft();
     }
 
-    function instrument_Cancel(uint256 streamId) internal returns (uint256) {
+    function instrument_Cancel(uint256 streamId) internal returns (uint256 gasUsed) {
         resetPrank({ msgSender: users.sender });
         // Warp to right before the end of the stream.
         vm.warp({ newTimestamp: lockup.getEndTime(streamId) - 1 seconds });
 
         uint256 initialGas = gasleft();
         lockup.cancel(streamId);
-        return initialGas - gasleft();
+        gasUsed = initialGas - gasleft();
     }
 
-    function instrument_Renounce(uint256 streamId) internal returns (uint256) {
+    function instrument_Renounce(uint256 streamId) internal returns (uint256 gasUsed) {
         resetPrank({ msgSender: users.sender });
         // Warp to halfway through the stream.
         vm.warp({ newTimestamp: lockup.getEndTime(streamId) / 2 });
 
         uint256 initialGas = gasleft();
         lockup.renounce(streamId);
-        return initialGas - gasleft();
+        gasUsed = initialGas - gasleft();
     }
 
-    function instrument_Withdraw(uint256 streamId, address caller) internal returns (uint256) {
+    function instrument_Withdraw(uint256 streamId, address caller) internal returns (uint256 gasUsed) {
         resetPrank({ msgSender: caller });
 
         uint128 withdrawAmount = lockup.withdrawableAmountOf(streamId);
@@ -137,33 +133,44 @@ abstract contract LockupBenchmark is Logger, StdCheats, Utils {
 
         uint256 initialGas = gasleft();
         lockup.withdraw(streamId, users.recipient, withdrawAmount);
-        return initialGas - gasleft();
+        gasUsed = initialGas - gasleft();
     }
 
-    function instrument_WithdrawCompleted(uint256 streamId, address caller) internal returns (uint256, string memory) {
+    function instrument_WithdrawCompleted(
+        uint256 streamId,
+        address caller
+    )
+        internal
+        returns (uint256 gasUsed, string memory config)
+    {
         // Warp to right past the end of the stream.
         vm.warp({ newTimestamp: lockup.getEndTime(streamId) + 1 seconds });
+
+        gasUsed = instrument_Withdraw(streamId, caller);
+
         if (caller == users.recipient) {
             config = "vesting completed && called by recipient";
         } else {
             config = "vesting completed && called by third-party";
         }
-
-        gasUsed = instrument_Withdraw(streamId, caller);
-        return (gasUsed, config);
     }
 
-    function instrument_WithdrawOngoing(uint256 streamId, address caller) internal returns (uint256, string memory) {
+    function instrument_WithdrawOngoing(
+        uint256 streamId,
+        address caller
+    )
+        internal
+        returns (uint256 gasUsed, string memory config)
+    {
         // Warp to right before the end of the stream.
         vm.warp({ newTimestamp: lockup.getEndTime(streamId) - 1 seconds });
+        gasUsed = instrument_Withdraw(streamId, caller);
+
         if (caller == users.recipient) {
             config = "vesting ongoing && called by recipient";
         } else {
             config = "vesting ongoing && called by third-party";
         }
-
-        gasUsed = instrument_Withdraw(streamId, caller);
-        return (gasUsed, config);
     }
 
     /*//////////////////////////////////////////////////////////////////////////

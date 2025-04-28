@@ -73,6 +73,7 @@ contract LockupLinearBenchmark is LockupBenchmark {
         /* -------------------------------- WITHDRAW -------------------------------- */
 
         logBlue("Benchmarking: withdraw...");
+        string memory config;
         _setUpLinearStreams();
         (gasUsed, config) = instrument_WithdrawOngoing(_linearStreamIds[0], users.recipient);
         _appendRow("withdraw", config, gasUsed);

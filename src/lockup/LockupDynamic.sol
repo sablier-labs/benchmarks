@@ -44,7 +44,7 @@ contract LockupDynamicBenchmark is LockupBenchmark {
         /* ---------------------------------- BURN ---------------------------------- */
 
         logBlue("Benchmarking: burn...");
-        gasUsed = instrument_Burn(_dynamicStreamIds[0]);
+        uint256 gasUsed = instrument_Burn(_dynamicStreamIds[0]);
         _appendRow("burn", defaults.SEGMENT_COUNT(), "N/A", gasUsed);
         logGreen("Completed burn benchmark");
 
@@ -65,6 +65,7 @@ contract LockupDynamicBenchmark is LockupBenchmark {
         /* ---------------------------- CREATE & WITHDRAW --------------------------- */
 
         logBlue("Benchmarking: create and withdraw with different segment counts...");
+        string memory config;
         for (uint256 i; i < _segmentCounts.length; ++i) {
             logBlue(string.concat("Benchmarking with ", vm.toString(_segmentCounts[i]), " segments..."));
 

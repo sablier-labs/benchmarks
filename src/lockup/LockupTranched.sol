@@ -64,6 +64,7 @@ contract LockupTranchedBenchmark is LockupBenchmark {
         /* ---------------------------- CREATE & WITHDRAW --------------------------- */
 
         logBlue("Benchmarking: create and withdraw with different segment counts...");
+        string memory config;
         for (uint256 i; i < _trancheCounts.length; ++i) {
             logBlue(string.concat("Benchmarking with ", vm.toString(_trancheCounts[i]), " segments..."));
 
