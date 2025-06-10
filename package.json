@@ -44,7 +44,7 @@
     "token-streaming"
   ],
   "private": true,
-  "repository": "github.com:sablier-labs/benchmarks",
+  "repository": "sablier-labs/benchmarks",
   "scripts": {
     "benchmark": "forge test --show-progress -vv && bun run format:numbers",
     "benchmark:all": "bun run benchmark:flow && bun run benchmark:lockup",
