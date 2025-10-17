@@ -29,11 +29,11 @@ contract BatchLockupBenchmark is LockupBenchmark {
 
     function setUp() public virtual override {
         super.setUp();
-        RESULTS_FILE = "results/lockup/batch-lockup.md";
+        IMM_RESULTS_FILE = "results/lockup/batch-lockup.md";
 
         // Create the file if it doesn't exist, otherwise overwrite it.
         vm.writeFile({
-            path: RESULTS_FILE,
+            path: IMM_RESULTS_FILE,
             data: string.concat(
                 "With WETH as the streaming token.\n\n",
                 "| Lockup Model | Function | Batch Size | Segments/Tranches | Gas Usage |\n",
@@ -190,7 +190,7 @@ contract BatchLockupBenchmark is LockupBenchmark {
             vm.toString(gasUsed),
             " |"
         );
-        vm.writeLine({ path: RESULTS_FILE, data: row });
+        vm.writeLine({ path: IMM_RESULTS_FILE, data: row });
     }
 
     function _generateSegments(uint256 segmentCount) private view returns (LockupDynamic.Segment[] memory) {

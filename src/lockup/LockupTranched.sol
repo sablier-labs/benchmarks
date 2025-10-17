@@ -22,9 +22,9 @@ contract LockupTranchedBenchmark is LockupBenchmark {
 
     function setUp() public virtual override {
         super.setUp();
-        RESULTS_FILE = "results/lockup/lockup-tranched.md";
+        IMM_RESULTS_FILE = "results/lockup/lockup-tranched.md";
         vm.writeFile({
-            path: RESULTS_FILE,
+            path: IMM_RESULTS_FILE,
             data: string.concat(
                 "With WETH as the streaming token.\n\n",
                 "| Function | Tranches | Configuration | Gas Usage |\n",
@@ -136,7 +136,7 @@ contract LockupTranchedBenchmark is LockupBenchmark {
         string memory row = string.concat(
             "| `", functionName, "` | ", vm.toString(trancheCount), " | ", config, " | ", vm.toString(gasUsed), " |"
         );
-        vm.writeLine({ path: RESULTS_FILE, data: row });
+        vm.writeLine({ path: IMM_RESULTS_FILE, data: row });
     }
 
     function _paramsCreateWithDurationLT(uint128 trancheCount)

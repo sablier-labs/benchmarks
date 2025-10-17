@@ -21,9 +21,9 @@ contract LockupLinearBenchmark is LockupBenchmark {
 
     function setUp() public virtual override {
         super.setUp();
-        RESULTS_FILE = "results/lockup/lockup-linear.md";
+        IMM_RESULTS_FILE = "results/lockup/lockup-linear.md";
         vm.writeFile({
-            path: RESULTS_FILE,
+            path: IMM_RESULTS_FILE,
             data: string.concat(
                 "With WETH as the streaming token.\n\n",
                 "| Function | Configuration | Gas Usage |\n",
@@ -136,7 +136,7 @@ contract LockupLinearBenchmark is LockupBenchmark {
     /// @dev Append a row to the results file with the given function name, configuration, and gas used.
     function _appendRow(string memory functionName, string memory configuration, uint256 gasUsed) private {
         string memory row = string.concat("| `", functionName, "` | ", configuration, " | ", vm.toString(gasUsed), " |");
-        vm.writeLine({ path: RESULTS_FILE, data: row });
+        vm.writeLine({ path: IMM_RESULTS_FILE, data: row });
     }
 
     function _setUpLinearStreams() private {
