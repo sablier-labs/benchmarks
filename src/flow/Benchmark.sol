@@ -38,7 +38,7 @@ contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
         logBlue("Setting up Flow benchmarks...");
 
         // Fork Ethereum Mainnet at the latest block.
-        vm.createSelectFork({ urlOrAlias: "mainnet" });
+        vm.createSelectFork({ urlOrAlias: "ethereum" });
         uint256 chainId = block.chainid;
         if (chainId != 1) {
             revert("Benchmarking only works on Ethereum Mainnet. Update your RPC URL in .env");
