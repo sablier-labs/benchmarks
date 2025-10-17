@@ -2,7 +2,8 @@
 pragma solidity >=0.8.22;
 
 import { ud2x18 } from "@prb/math/src/UD2x18.sol";
-import { Lockup, LockupDynamic } from "@sablier/lockup/src/types/DataTypes.sol";
+import { Lockup } from "@sablier/lockup/src/types/Lockup.sol";
+import { LockupDynamic } from "@sablier/lockup/src/types/LockupDynamic.sol";
 
 import { LockupBenchmark } from "./Benchmark.sol";
 
@@ -95,7 +96,7 @@ contract LockupDynamicBenchmark is LockupBenchmark {
     //////////////////////////////////////////////////////////////////////////*/
 
     function instrument_CreateWithDurationsLD(uint128 segmentCount) internal {
-        resetPrank({ msgSender: users.sender });
+        setMsgSender(users.sender);
         vm.warp({ newTimestamp: defaults.START_TIME() });
 
         (Lockup.CreateWithDurations memory params, LockupDynamic.SegmentWithDuration[] memory segments) =
@@ -108,7 +109,7 @@ contract LockupDynamicBenchmark is LockupBenchmark {
     }
 
     function instrument_CreateWithTimestampsLD(uint128 segmentCount) internal {
-        resetPrank({ msgSender: users.sender });
+        setMsgSender(users.sender);
 
         (Lockup.CreateWithTimestamps memory params, LockupDynamic.Segment[] memory segments) =
             _paramsCreateWithTimestampsLD(segmentCount);
@@ -158,8 +159,8 @@ contract LockupDynamicBenchmark is LockupBenchmark {
 
         uint128 depositAmount = AMOUNT_PER_SEGMENT * segmentCount;
 
-        params = defaults.createWithDurationsBrokerNull();
-        params.totalAmount = depositAmount;
+        params = defaults.createWithDurations();
+        params.depositAmount = depositAmount;
         return (params, segments_);
     }
 
@@ -182,15 +183,15 @@ contract LockupDynamicBenchmark is LockupBenchmark {
 
         uint128 depositAmount = AMOUNT_PER_SEGMENT * segmentCount;
 
-        params = defaults.createWithTimestampsBrokerNull();
-        params.totalAmount = depositAmount;
+        params = defaults.createWithTimestamps();
+        params.depositAmount = depositAmount;
         params.timestamps.start = getBlockTimestamp();
         params.timestamps.end = segments_[segmentCount - 1].timestamp;
         return (params, segments_);
     }
 
     function _setUpDynamicStreams(uint128 segmentCount) private {
-        resetPrank({ msgSender: users.sender });
+        setMsgSender(users.sender);
         (Lockup.CreateWithDurations memory params, LockupDynamic.SegmentWithDuration[] memory segments) =
             _paramsCreateWithDurationLD(segmentCount);
         _dynamicStreamIds[0] = lockup.createWithDurationsLD(params, segments);

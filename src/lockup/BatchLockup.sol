@@ -3,7 +3,10 @@ pragma solidity >=0.8.22;
 
 import { ud2x18 } from "@prb/math/src/UD2x18.sol";
 
-import { BatchLockup, Lockup, LockupDynamic, LockupTranched } from "@sablier/lockup/src/types/DataTypes.sol";
+import { BatchLockup } from "@sablier/lockup/src/types/BatchLockup.sol";
+import { Lockup } from "@sablier/lockup/src/types/Lockup.sol";
+import { LockupDynamic } from "@sablier/lockup/src/types/LockupDynamic.sol";
+import { LockupTranched } from "@sablier/lockup/src/types/LockupTranched.sol";
 import { BatchLockupBuilder } from "@sablier/lockup/tests/utils/Defaults.sol";
 
 import { LockupBenchmark } from "./Benchmark.sol";
@@ -72,8 +75,8 @@ contract BatchLockupBenchmark is LockupBenchmark {
     //////////////////////////////////////////////////////////////////////////*/
 
     function instrument_BatchCreateWithDurationsLD(uint256 batchSize, uint256 segmentCount) internal {
-        Lockup.CreateWithDurations memory createParams = defaults.createWithDurationsBrokerNull();
-        createParams.totalAmount = uint128(AMOUNT_PER_ITEM * segmentCount);
+        Lockup.CreateWithDurations memory createParams = defaults.createWithDurations();
+        createParams.depositAmount = uint128(AMOUNT_PER_ITEM * segmentCount);
         LockupDynamic.SegmentWithDuration[] memory segments = _generateSegmentsWithDuration(segmentCount);
         BatchLockup.CreateWithDurationsLD[] memory batchParams =
             BatchLockupBuilder.fillBatch(createParams, segments, batchSize);
@@ -86,11 +89,11 @@ contract BatchLockupBenchmark is LockupBenchmark {
     }
 
     function instrument_BatchCreateWithTimestampsLD(uint256 batchSize, uint256 segmentCount) internal {
-        Lockup.CreateWithTimestamps memory createParams = defaults.createWithTimestampsBrokerNull();
+        Lockup.CreateWithTimestamps memory createParams = defaults.createWithTimestamps();
         LockupDynamic.Segment[] memory segments = _generateSegments(segmentCount);
         createParams.timestamps.start = getBlockTimestamp();
         createParams.timestamps.end = segments[segments.length - 1].timestamp;
-        createParams.totalAmount = uint128(AMOUNT_PER_ITEM * segmentCount);
+        createParams.depositAmount = uint128(AMOUNT_PER_ITEM * segmentCount);
         BatchLockup.CreateWithTimestampsLD[] memory params =
             BatchLockupBuilder.fillBatch(createParams, segments, batchSize);
 
@@ -103,7 +106,7 @@ contract BatchLockupBenchmark is LockupBenchmark {
 
     function instrument_BatchCreateWithDurationsLL(uint256 batchSize) internal {
         BatchLockup.CreateWithDurationsLL[] memory batchParams = BatchLockupBuilder.fillBatch({
-            params: defaults.createWithDurationsBrokerNull(),
+            params: defaults.createWithDurations(),
             unlockAmounts: defaults.unlockAmounts(),
             durations: defaults.durations(),
             batchSize: batchSize
@@ -118,7 +121,7 @@ contract BatchLockupBenchmark is LockupBenchmark {
 
     function instrument_BatchCreateWithTimestampsLL(uint256 batchSize) internal {
         BatchLockup.CreateWithTimestampsLL[] memory batchParams = BatchLockupBuilder.fillBatch({
-            params: defaults.createWithTimestampsBrokerNull(),
+            params: defaults.createWithTimestamps(),
             unlockAmounts: defaults.unlockAmounts(),
             cliffTime: defaults.CLIFF_TIME(),
             batchSize: batchSize
@@ -132,9 +135,9 @@ contract BatchLockupBenchmark is LockupBenchmark {
     }
 
     function instrument_BatchCreateWithDurationsLT(uint256 batchSize, uint256 trancheCount) internal {
-        Lockup.CreateWithDurations memory createParams = defaults.createWithDurationsBrokerNull();
+        Lockup.CreateWithDurations memory createParams = defaults.createWithDurations();
         LockupTranched.TrancheWithDuration[] memory tranches = _generateTranchesWithDuration(trancheCount);
-        createParams.totalAmount = uint128(AMOUNT_PER_ITEM * trancheCount);
+        createParams.depositAmount = uint128(AMOUNT_PER_ITEM * trancheCount);
         BatchLockup.CreateWithDurationsLT[] memory batchParams =
             BatchLockupBuilder.fillBatch(createParams, tranches, batchSize);
 
@@ -146,11 +149,11 @@ contract BatchLockupBenchmark is LockupBenchmark {
     }
 
     function instrument_BatchCreateWithTimestampsLT(uint256 batchSize, uint256 trancheCount) internal {
-        Lockup.CreateWithTimestamps memory createParams = defaults.createWithTimestampsBrokerNull();
+        Lockup.CreateWithTimestamps memory createParams = defaults.createWithTimestamps();
         LockupTranched.Tranche[] memory tranches = _generateTranches(trancheCount);
         createParams.timestamps.start = getBlockTimestamp();
         createParams.timestamps.end = tranches[tranches.length - 1].timestamp;
-        createParams.totalAmount = uint128(AMOUNT_PER_ITEM * trancheCount);
+        createParams.depositAmount = uint128(AMOUNT_PER_ITEM * trancheCount);
         BatchLockup.CreateWithTimestampsLT[] memory batchParams =
             BatchLockupBuilder.fillBatch(createParams, tranches, batchSize);
 

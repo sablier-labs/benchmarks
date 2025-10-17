@@ -2,15 +2,15 @@ With USDC as the streaming token.
 
 | Function              | Stream Solvency | Gas Usage |
 | :-------------------- | :-------------- | :-------- |
-| `adjustRatePerSecond` | N/A             | 44,186    |
-| `create`              | N/A             | 124,326   |
-| `deposit`             | N/A             | 37,540    |
-| `pause`               | N/A             | 7822      |
-| `refund`              | Solvent         | 25,221    |
-| `refundMax`           | Solvent         | 26,144    |
-| `restart`             | N/A             | 7164      |
-| `void`                | Solvent         | 10,241    |
-| `void`                | Insolvent       | 37,742    |
-| `withdraw`            | Insolvent       | 77,618    |
-| `withdraw`            | Solvent         | 40,985    |
-| `withdrawMax`         | Solvent         | 54,760    |
+| `adjustRatePerSecond` | N/A             | 44,520    |
+| `create`              | N/A             | 127,027   |
+| `deposit`             | N/A             | 37,028    |
+| `pause`               | N/A             | 8312      |
+| `refund`              | Solvent         | 24,785    |
+| `refundMax`           | Solvent         | 25,820    |
+| `restart`             | N/A             | 7514      |
+| `void`                | Solvent         | 10,100    |
+| `void`                | Insolvent       | 37,601    |
+| `withdraw`            | Insolvent       | 84,577    |
+| `withdraw`            | Solvent         | 45,945    |
+| `withdrawMax`         | Solvent         | 59,881    |

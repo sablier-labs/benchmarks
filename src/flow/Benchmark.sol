@@ -2,17 +2,18 @@
 pragma solidity >=0.8.22;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { ud21x18 } from "@prb/math/src/UD21x18.sol";
+import { ISablierComptroller } from "@sablier/evm-utils/src/interfaces/ISablierComptroller.sol";
+import { BaseUtils } from "@sablier/evm-utils/src/tests/BaseUtils.sol";
 import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
 import { Constants } from "@sablier/flow/tests/utils/Constants.sol";
-import { Utils } from "@sablier/flow/tests/utils/Utils.sol";
 import { Users } from "@sablier/flow/tests/utils/Types.sol";
 import { StdCheats } from "forge-std/src/StdCheats.sol";
-import { Logger } from "../Logger.sol";
 
 /// @notice Contract to benchmark Flow streams.
 /// @dev This contract creates a Markdown file with the gas usage of each function.
-contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
+contract FlowBenchmark is BaseUtils, Constants, StdCheats {
     /*//////////////////////////////////////////////////////////////////////////
                                   STATE VARIABLES
     //////////////////////////////////////////////////////////////////////////*/
@@ -39,33 +40,30 @@ contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
 
         // Fork Ethereum Mainnet at the latest block.
         vm.createSelectFork({ urlOrAlias: "ethereum" });
-        uint256 chainId = block.chainid;
-        if (chainId != 1) {
-            revert("Benchmarking only works on Ethereum Mainnet. Update your RPC URL in .env");
-        }
         logGreen("Forked Ethereum Mainnet");
 
         // Load deployed addresses from Ethereum mainnet.
         // See https://docs.sablier.com/guides/flow/deployments
-        flow = ISablierFlow(0x3DF2AAEdE81D2F6b261F79047517713B8E844E04);
+        flow = ISablierFlow(0x7a86d3e6894f9c5B5f25FFBDAaE658CFc7569623);
         logGreen("Loaded SablierFlow contract");
 
         // Load USDC token.
         usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
         logGreen("Loaded USDC token contract");
 
-        // Create some users.
+        // Create test users and deal USDC to them.
         users.recipient = payable(makeAddr("recipient"));
         users.sender = payable(makeAddr("sender"));
         logGreen("Created test users");
 
         deal({ token: address(usdc), to: users.sender, give: type(uint128).max });
-        resetPrank({ msgSender: users.sender });
+
+        setMsgSender(users.sender);
         usdc.approve(address(flow), type(uint128).max);
-        logGreen("Funded and approved USDC");
+        logGreen("Funded USDC and approved contracts");
 
         // Create test streams.
-        for (uint256 i = 0; i < 8; i++) {
+        for (uint256 i = 0; i < 8; ++i) {
             streamIds[i] = _createAndFundStream();
         }
         logGreen("Created 7 test streams");
@@ -100,7 +98,9 @@ contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
         instrument(
             "create",
             "N/A",
-            abi.encodeCall(flow.create, (users.sender, users.recipient, RATE_PER_SECOND, usdc, TRANSFERABLE))
+            abi.encodeCall(
+                flow.create, (users.sender, users.recipient, RATE_PER_SECOND, getBlockTimestamp(), usdc, TRANSFERABLE)
+            )
         );
         instrument(
             "deposit",
@@ -170,10 +170,17 @@ contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
         // Simulate the passage of time.
         vm.warp(getBlockTimestamp() + 2 days);
 
+        // For `withdraw` and `withdrawMax`, include fee in the call.
+        uint256 minFeeWei;
+        if (Strings.equal(name, "withdraw") || Strings.equal(name, "withdrawMax")) {
+            minFeeWei = flow.comptroller().calculateMinFeeWei({ protocol: ISablierComptroller.Protocol.Flow });
+        }
+
         // Run the function and instrument the gas usage.
         logBlue(string.concat("Benchmarking: ", name));
         uint256 initialGas = gasleft();
-        (bool status, bytes memory revertData) = address(flow).call(payload);
+        (bool status, bytes memory revertData) = address(flow).call{ value: minFeeWei }(payload);
+
         uint256 gasUsed = initialGas - gasleft();
 
         // If the function call reverted, load and bubble up the revert data.
@@ -203,13 +210,13 @@ contract FlowBenchmark is Constants, Logger, StdCheats, Utils {
             sender: users.sender,
             recipient: users.recipient,
             ratePerSecond: RATE_PER_SECOND,
+            startTime: getBlockTimestamp(),
             token: usdc,
             transferable: TRANSFERABLE
         });
 
         // Fund the stream.
-        uint128 depositAmount = getDefaultDepositAmount(USDC_DECIMALS);
-        flow.deposit(streamId, depositAmount, users.sender, users.recipient);
+        flow.deposit(streamId, DEPOSIT_AMOUNT_6D, users.sender, users.recipient);
 
         // Return the stream ID.
         return streamId;

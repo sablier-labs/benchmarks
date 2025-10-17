@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.22;
 
-import { Lockup, LockupLinear } from "@sablier/lockup/src/types/DataTypes.sol";
+import { Lockup } from "@sablier/lockup/src/types/Lockup.sol";
+import { LockupLinear } from "@sablier/lockup/src/types/LockupLinear.sol";
 
 import { LockupBenchmark } from "./Benchmark.sol";
 
@@ -94,10 +95,10 @@ contract LockupLinearBenchmark is LockupBenchmark {
     //////////////////////////////////////////////////////////////////////////*/
 
     function instrument_CreateWithDurationsLL(uint40 cliffDuration) internal {
-        resetPrank({ msgSender: users.sender });
+        setMsgSender(users.sender);
         vm.warp({ newTimestamp: defaults.START_TIME() });
 
-        Lockup.CreateWithDurations memory params = defaults.createWithDurationsBrokerNull();
+        Lockup.CreateWithDurations memory params = defaults.createWithDurations();
         LockupLinear.Durations memory durations = defaults.durations();
         durations.cliff = cliffDuration;
 
@@ -113,9 +114,9 @@ contract LockupLinearBenchmark is LockupBenchmark {
     }
 
     function instrument_CreateWithTimestampsLL(uint40 cliffTime) internal {
-        resetPrank({ msgSender: users.sender });
+        setMsgSender(users.sender);
 
-        Lockup.CreateWithTimestamps memory params = defaults.createWithTimestampsBrokerNull();
+        Lockup.CreateWithTimestamps memory params = defaults.createWithTimestamps();
 
         LockupLinear.UnlockAmounts memory unlockAmounts = defaults.unlockAmounts();
         if (cliffTime == 0) unlockAmounts.cliff = 0;
@@ -139,9 +140,9 @@ contract LockupLinearBenchmark is LockupBenchmark {
     }
 
     function _setUpLinearStreams() private {
-        resetPrank({ msgSender: users.sender });
+        setMsgSender(users.sender);
 
-        Lockup.CreateWithTimestamps memory params = defaults.createWithTimestampsBrokerNull();
+        Lockup.CreateWithTimestamps memory params = defaults.createWithTimestamps();
 
         _linearStreamIds[0] = lockup.createWithTimestampsLL({
             params: params,
