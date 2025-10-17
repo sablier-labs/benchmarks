@@ -9,11 +9,7 @@ default:
 #                                    RECIPES                                   #
 # ---------------------------------------------------------------------------- #
 
-full-write:
-  just solhint-write
-  just fmt-write
-  just prettier-write
-  just format-numbers
+full-write: solhint-write fmt-write prettier-write format-numbers
 
 format-numbers:
   na ./scripts/format-numbers.js
