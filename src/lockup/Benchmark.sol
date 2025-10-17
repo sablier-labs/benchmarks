@@ -1,18 +1,17 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.22;
 
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { ERC20Mock } from "@sablier/evm-utils/src/mocks/erc20/ERC20Mock.sol";
 import { ISablierComptroller } from "@sablier/evm-utils/src/interfaces/ISablierComptroller.sol";
-import { BaseUtils } from "@sablier/evm-utils/src/tests/BaseUtils.sol";
+import { BaseTest } from "@sablier/evm-utils/src/tests/BaseTest.sol";
 import { ISablierBatchLockup } from "@sablier/lockup/src/interfaces/ISablierBatchLockup.sol";
 import { ISablierLockup } from "@sablier/lockup/src/interfaces/ISablierLockup.sol";
 import { Lockup } from "@sablier/lockup/src/types/Lockup.sol";
 import { Defaults } from "@sablier/lockup/tests/utils/Defaults.sol";
 import { Users } from "@sablier/lockup/tests/utils/Types.sol";
-import { StdCheats } from "forge-std/src/StdCheats.sol";
 
 /// @notice Base contract with common logic needed to get gas benchmarks for Lockup streams.
-abstract contract LockupBenchmark is BaseUtils, StdCheats {
+abstract contract LockupBenchmark is BaseTest {
     /*//////////////////////////////////////////////////////////////////////////
                                   STATE VARIABLES
     //////////////////////////////////////////////////////////////////////////*/
@@ -34,6 +33,8 @@ abstract contract LockupBenchmark is BaseUtils, StdCheats {
 
     Users internal users;
 
+    ERC20Mock internal weth;
+
     /*//////////////////////////////////////////////////////////////////////////
                                     CONTRACTS
     //////////////////////////////////////////////////////////////////////////*/
@@ -41,17 +42,16 @@ abstract contract LockupBenchmark is BaseUtils, StdCheats {
     ISablierBatchLockup internal batchLockup;
     Defaults internal defaults;
     ISablierLockup internal lockup;
-    IERC20 internal usdc;
 
     /*//////////////////////////////////////////////////////////////////////////
                                   SET-UP FUNCTION
     //////////////////////////////////////////////////////////////////////////*/
 
-    function setUp() public virtual {
+    function setUp() public virtual override {
         logBlue("Setting up Lockup benchmarks...");
 
         // Fork Ethereum Mainnet at the latest block.
-        vm.createSelectFork({ urlOrAlias: "ethereum" });
+        setUpForkMainnet();
         logGreen("Forked Ethereum Mainnet");
 
         // Load deployed addresses from Ethereum mainnet.
@@ -60,25 +60,24 @@ abstract contract LockupBenchmark is BaseUtils, StdCheats {
         lockup = ISablierLockup(0xcF8ce57fa442ba50aCbC57147a62aD03873FfA73);
         logGreen("Loaded Sablier contracts");
 
-        // Load USDC token.
-        usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
-        logGreen("Loaded USDC token contract");
+        // Load WETH token.
+        weth = ERC20Mock(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+        tokens.push(weth);
+        logGreen("Loaded WETH token contract");
 
-        // Create test users and deal USDC to them.
-        users.alice = payable(makeAddr("alice"));
-        users.recipient = payable(makeAddr("recipient"));
-        users.sender = payable(makeAddr("sender"));
-        logGreen("Created test users");
-
-        deal({ token: address(usdc), to: users.sender, give: type(uint128).max });
+        // Create test users and deal WETH to them.
+        address[] memory spenders = new address[](2);
+        spenders[0] = address(batchLockup);
+        spenders[1] = address(lockup);
+        users.alice = createUser("alice", spenders);
+        users.recipient = createUser("recipient", spenders);
+        users.sender = createUser("sender", spenders);
+        logGreen("Created test users, funded WETH and approved contracts");
 
         setMsgSender(users.sender);
-        usdc.approve(address(batchLockup), type(uint128).max);
-        usdc.approve(address(lockup), type(uint128).max);
-        logGreen("Funded USDC and approved contracts");
 
         defaults = new Defaults();
-        defaults.setToken(usdc);
+        defaults.setToken(weth);
         defaults.setUsers(users);
 
         // Create test streams.

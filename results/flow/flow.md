@@ -11,6 +11,6 @@ With USDC as the streaming token.
 | `restart`             | N/A             | 7514      |
 | `void`                | Solvent         | 10,100    |
 | `void`                | Insolvent       | 37,601    |
-| `withdraw`            | Insolvent       | 84,577    |
+| `withdraw`            | Insolvent       | 67,477    |
 | `withdraw`            | Solvent         | 45,945    |
 | `withdrawMax`         | Solvent         | 59,881    |

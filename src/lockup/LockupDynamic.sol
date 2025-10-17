@@ -27,7 +27,7 @@ contract LockupDynamicBenchmark is LockupBenchmark {
         vm.writeFile({
             path: RESULTS_FILE,
             data: string.concat(
-                "With USDC as the streaming token.\n\n",
+                "With WETH as the streaming token.\n\n",
                 "| Function | Segments | Configuration | Gas Usage |\n",
                 "| :------- | :------- | :------------ | :-------- |\n"
             )

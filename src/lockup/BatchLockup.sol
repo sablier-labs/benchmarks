@@ -35,7 +35,7 @@ contract BatchLockupBenchmark is LockupBenchmark {
         vm.writeFile({
             path: RESULTS_FILE,
             data: string.concat(
-                "With USDC as the streaming token.\n\n",
+                "With WETH as the streaming token.\n\n",
                 "| Lockup Model | Function | Batch Size | Segments/Tranches | Gas Usage |\n",
                 "| :----------- | :------- | :--------- | :---------------- | :-------- |\n"
             )
@@ -82,7 +82,7 @@ contract BatchLockupBenchmark is LockupBenchmark {
             BatchLockupBuilder.fillBatch(createParams, segments, batchSize);
 
         uint256 initialGas = gasleft();
-        batchLockup.createWithDurationsLD(lockup, usdc, batchParams);
+        batchLockup.createWithDurationsLD(lockup, weth, batchParams);
         uint256 gasUsed = initialGas - gasleft();
 
         _appendRow("createWithDurationsLD", "Dynamic", batchSize, vm.toString(segmentCount), gasUsed);
@@ -98,7 +98,7 @@ contract BatchLockupBenchmark is LockupBenchmark {
             BatchLockupBuilder.fillBatch(createParams, segments, batchSize);
 
         uint256 initialGas = gasleft();
-        batchLockup.createWithTimestampsLD(lockup, usdc, params);
+        batchLockup.createWithTimestampsLD(lockup, weth, params);
         uint256 gasUsed = initialGas - gasleft();
 
         _appendRow("createWithTimestampsLD", "Dynamic", batchSize, vm.toString(segmentCount), gasUsed);
@@ -113,7 +113,7 @@ contract BatchLockupBenchmark is LockupBenchmark {
         });
 
         uint256 initialGas = gasleft();
-        batchLockup.createWithDurationsLL(lockup, usdc, batchParams);
+        batchLockup.createWithDurationsLL(lockup, weth, batchParams);
         uint256 gasUsed = initialGas - gasleft();
 
         _appendRow("createWithDurationsLL", "Linear", batchSize, "N/A", gasUsed);
@@ -128,7 +128,7 @@ contract BatchLockupBenchmark is LockupBenchmark {
         });
 
         uint256 initialGas = gasleft();
-        batchLockup.createWithTimestampsLL(lockup, usdc, batchParams);
+        batchLockup.createWithTimestampsLL(lockup, weth, batchParams);
         uint256 gasUsed = initialGas - gasleft();
 
         _appendRow("createWithTimestampsLL", "Linear", batchSize, "N/A", gasUsed);
@@ -142,7 +142,7 @@ contract BatchLockupBenchmark is LockupBenchmark {
             BatchLockupBuilder.fillBatch(createParams, tranches, batchSize);
 
         uint256 initialGas = gasleft();
-        batchLockup.createWithDurationsLT(lockup, usdc, batchParams);
+        batchLockup.createWithDurationsLT(lockup, weth, batchParams);
         uint256 gasUsed = initialGas - gasleft();
 
         _appendRow("createWithDurationsLT", "Tranched", batchSize, vm.toString(trancheCount), gasUsed);
@@ -158,7 +158,7 @@ contract BatchLockupBenchmark is LockupBenchmark {
             BatchLockupBuilder.fillBatch(createParams, tranches, batchSize);
 
         uint256 initialGas = gasleft();
-        batchLockup.createWithTimestampsLT(lockup, usdc, batchParams);
+        batchLockup.createWithTimestampsLT(lockup, weth, batchParams);
         uint256 gasUsed = initialGas - gasleft();
 
         _appendRow("createWithTimestampsLT", "Tranched", batchSize, vm.toString(trancheCount), gasUsed);

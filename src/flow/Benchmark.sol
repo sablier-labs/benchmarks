@@ -1,19 +1,18 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.22;
 
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { ERC20Mock } from "@sablier/evm-utils/src/mocks/erc20/ERC20Mock.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { ud21x18 } from "@prb/math/src/UD21x18.sol";
 import { ISablierComptroller } from "@sablier/evm-utils/src/interfaces/ISablierComptroller.sol";
-import { BaseUtils } from "@sablier/evm-utils/src/tests/BaseUtils.sol";
+import { BaseTest } from "@sablier/evm-utils/src/tests/BaseTest.sol";
 import { ISablierFlow } from "@sablier/flow/src/interfaces/ISablierFlow.sol";
 import { Constants } from "@sablier/flow/tests/utils/Constants.sol";
 import { Users } from "@sablier/flow/tests/utils/Types.sol";
-import { StdCheats } from "forge-std/src/StdCheats.sol";
 
 /// @notice Contract to benchmark Flow streams.
 /// @dev This contract creates a Markdown file with the gas usage of each function.
-contract FlowBenchmark is BaseUtils, Constants, StdCheats {
+contract FlowBenchmark is BaseTest, Constants {
     /*//////////////////////////////////////////////////////////////////////////
                                   STATE VARIABLES
     //////////////////////////////////////////////////////////////////////////*/
@@ -29,17 +28,16 @@ contract FlowBenchmark is BaseUtils, Constants, StdCheats {
     //////////////////////////////////////////////////////////////////////////*/
 
     ISablierFlow internal flow;
-    IERC20 internal usdc;
 
     /*//////////////////////////////////////////////////////////////////////////
                                   SET-UP FUNCTION
     //////////////////////////////////////////////////////////////////////////*/
 
-    function setUp() public {
+    function setUp() public override {
         logBlue("Setting up Flow benchmarks...");
 
         // Fork Ethereum Mainnet at the latest block.
-        vm.createSelectFork({ urlOrAlias: "ethereum" });
+        setUpForkMainnet();
         logGreen("Forked Ethereum Mainnet");
 
         // Load deployed addresses from Ethereum mainnet.
@@ -48,19 +46,18 @@ contract FlowBenchmark is BaseUtils, Constants, StdCheats {
         logGreen("Loaded SablierFlow contract");
 
         // Load USDC token.
-        usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+        usdc = ERC20Mock(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+        tokens.push(usdc);
         logGreen("Loaded USDC token contract");
 
         // Create test users and deal USDC to them.
-        users.recipient = payable(makeAddr("recipient"));
-        users.sender = payable(makeAddr("sender"));
-        logGreen("Created test users");
-
-        deal({ token: address(usdc), to: users.sender, give: type(uint128).max });
+        address[] memory spenders = new address[](1);
+        spenders[0] = address(flow);
+        users.recipient = createUser("recipient", spenders);
+        users.sender = createUser("sender", spenders);
+        logGreen("Created test users, funded USDC and approved contracts");
 
         setMsgSender(users.sender);
-        usdc.approve(address(flow), type(uint128).max);
-        logGreen("Funded USDC and approved contracts");
 
         // Create test streams.
         for (uint256 i = 0; i < 8; ++i) {
