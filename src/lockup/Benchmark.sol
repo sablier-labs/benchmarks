@@ -48,7 +48,7 @@ abstract contract LockupBenchmark is Logger, StdCheats, Utils {
         logBlue("Setting up Lockup benchmarks...");
 
         // Fork Ethereum Mainnet at the latest block.
-        vm.createSelectFork({ urlOrAlias: "mainnet" });
+        vm.createSelectFork({ urlOrAlias: "ethereum" });
 
         uint256 chainId = block.chainid;
         if (chainId != 1) {
