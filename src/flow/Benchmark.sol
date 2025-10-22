@@ -37,7 +37,7 @@ contract FlowBenchmark is BaseTest, Constants {
         logBlue("Setting up Flow benchmarks...");
 
         // Fork Ethereum Mainnet at the latest block.
-        setUpForkMainnet();
+        setUpForkEthereum();
         logGreen("Forked Ethereum Mainnet");
 
         // Load deployed addresses from Ethereum mainnet.

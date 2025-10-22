@@ -32,4 +32,4 @@
   lint_on_build = false
 
 [rpc_endpoints]
-  mainnet = "https://direct.routeme.sh/rpc/1/${ROUTEMESH_API_KEY}"
+  ethereum = "https://direct.routeme.sh/rpc/1/${ROUTEMESH_API_KEY}"

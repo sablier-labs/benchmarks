@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.22;
 
-import { Lockup } from "@sablier/lockup/src/types/Lockup.sol";
-import { LockupLinear } from "@sablier/lockup/src/types/LockupLinear.sol";
+import { Lockup, LockupLinear } from "@sablier/lockup/src/types/DataTypes.sol";
 
 import { LockupBenchmark } from "./Benchmark.sol";
 
