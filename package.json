@@ -14,7 +14,8 @@
     "@openzeppelin/contracts": "5.3.0",
     "@prb/math": "4.1.0",
     "@sablier/airdrops": "2.0.1",
-    "@sablier/flow": "2.0.0",
+    "@sablier/evm-utils": "1.0.1",
+    "@sablier/flow": "2.0.1",
     "@sablier/lockup": "3.0.1"
   },
   "devDependencies": {
@@ -23,7 +24,6 @@
     "husky": "^9.1",
     "lint-staged": "^16.1",
     "prettier": "^3.5",
-    "solady": "0.0.208",
     "solhint": "^6.0"
   },
   "homepage": "https://github.com/sablier-labs/benchmarks#readme",
