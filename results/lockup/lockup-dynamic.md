@@ -1,25 +1,25 @@
-With USDC as the streaming token.
+With WETH as the streaming token.
 
 | Function                 | Segments | Configuration                              | Gas Usage |
 | :----------------------- | :------- | :----------------------------------------- | :-------- |
-| `burn`                   | 2        | N/A                                        | 8381      |
-| `cancel`                 | 2        | N/A                                        | 53,217    |
-| `renounce`               | 2        | N/A                                        | 4378      |
-| `createWithDurationsLD`  | 2        | N/A                                        | 200,463   |
-| `createWithTimestampsLD` | 2        | N/A                                        | 195,419   |
-| `withdraw`               | 2        | vesting ongoing && called by recipient     | 31,997    |
-| `withdraw`               | 2        | vesting completed && called by recipient   | 21,166    |
-| `withdraw`               | 2        | vesting ongoing && called by third-party   | 32,229    |
-| `withdraw`               | 2        | vesting completed && called by third-party | 21,398    |
-| `createWithDurationsLD`  | 10       | N/A                                        | 419,984   |
-| `createWithTimestampsLD` | 10       | N/A                                        | 399,880   |
-| `withdraw`               | 10       | vesting ongoing && called by recipient     | 39,284    |
-| `withdraw`               | 10       | vesting completed && called by recipient   | 26,261    |
-| `withdraw`               | 10       | vesting ongoing && called by third-party   | 39,516    |
-| `withdraw`               | 10       | vesting completed && called by third-party | 26,493    |
-| `createWithDurationsLD`  | 100      | N/A                                        | 2,896,308 |
-| `createWithTimestampsLD` | 100      | N/A                                        | 2,703,319 |
-| `withdraw`               | 100      | vesting ongoing && called by recipient     | 121,697   |
-| `withdraw`               | 100      | vesting completed && called by recipient   | 84,014    |
-| `withdraw`               | 100      | vesting ongoing && called by third-party   | 121,929   |
-| `withdraw`               | 100      | vesting completed && called by third-party | 84,246    |
+| `burn`                   | 2        | N/A                                        | 8455      |
+| `cancel`                 | 2        | N/A                                        | 50,585    |
+| `renounce`               | 2        | N/A                                        | 4434      |
+| `createWithDurationsLD`  | 2        | N/A                                        | 195,680   |
+| `createWithTimestampsLD` | 2        | N/A                                        | 189,827   |
+| `withdraw`               | 2        | vesting ongoing && called by recipient     | 41,572    |
+| `withdraw`               | 2        | vesting completed && called by recipient   | 30,484    |
+| `withdraw`               | 2        | vesting ongoing && called by third-party   | 41,804    |
+| `withdraw`               | 2        | vesting completed && called by third-party | 30,716    |
+| `createWithDurationsLD`  | 10       | N/A                                        | 416,016   |
+| `createWithTimestampsLD` | 10       | N/A                                        | 394,914   |
+| `withdraw`               | 10       | vesting ongoing && called by recipient     | 46,672    |
+| `withdraw`               | 10       | vesting completed && called by recipient   | 32,672    |
+| `withdraw`               | 10       | vesting ongoing && called by third-party   | 46,904    |
+| `withdraw`               | 10       | vesting completed && called by third-party | 32,904    |
+| `createWithDurationsLD`  | 100      | N/A                                        | 2,901,528 |
+| `createWithTimestampsLD` | 100      | N/A                                        | 2,705,536 |
+| `withdraw`               | 100      | vesting ongoing && called by recipient     | 104,202   |
+| `withdraw`               | 100      | vesting completed && called by recipient   | 57,442    |
+| `withdraw`               | 100      | vesting ongoing && called by third-party   | 104,434   |
+| `withdraw`               | 100      | vesting completed && called by third-party | 57,674    |

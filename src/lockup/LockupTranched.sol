@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.22;
 
-import { Lockup, LockupTranched } from "@sablier/lockup/src/types/DataTypes.sol";
+import { Lockup } from "@sablier/lockup/src/types/Lockup.sol";
+import { LockupTranched } from "@sablier/lockup/src/types/LockupTranched.sol";
 
 import { LockupBenchmark } from "./Benchmark.sol";
 
@@ -21,11 +22,11 @@ contract LockupTranchedBenchmark is LockupBenchmark {
 
     function setUp() public virtual override {
         super.setUp();
-        RESULTS_FILE = "results/lockup/lockup-tranched.md";
+        IMM_RESULTS_FILE = "results/lockup/lockup-tranched.md";
         vm.writeFile({
-            path: RESULTS_FILE,
+            path: IMM_RESULTS_FILE,
             data: string.concat(
-                "With USDC as the streaming token.\n\n",
+                "With WETH as the streaming token.\n\n",
                 "| Function | Tranches | Configuration | Gas Usage |\n",
                 "| :------- | :------- | :------------ | :-------- |\n"
             )
@@ -94,7 +95,7 @@ contract LockupTranchedBenchmark is LockupBenchmark {
     //////////////////////////////////////////////////////////////////////////*/
 
     function instrument_CreateWithDurationsLT(uint128 trancheCount) internal {
-        resetPrank({ msgSender: users.sender });
+        setMsgSender(users.sender);
         vm.warp({ newTimestamp: defaults.START_TIME() });
 
         (Lockup.CreateWithDurations memory params, LockupTranched.TrancheWithDuration[] memory tranches) =
@@ -108,7 +109,7 @@ contract LockupTranchedBenchmark is LockupBenchmark {
     }
 
     function instrument_CreateWithTimestampsLT(uint128 trancheCount) internal {
-        resetPrank({ msgSender: users.sender });
+        setMsgSender(users.sender);
 
         (Lockup.CreateWithTimestamps memory params, LockupTranched.Tranche[] memory tranches) =
             _paramsCreateWithTimestampsLT(trancheCount);
@@ -135,7 +136,7 @@ contract LockupTranchedBenchmark is LockupBenchmark {
         string memory row = string.concat(
             "| `", functionName, "` | ", vm.toString(trancheCount), " | ", config, " | ", vm.toString(gasUsed), " |"
         );
-        vm.writeLine({ path: RESULTS_FILE, data: row });
+        vm.writeLine({ path: IMM_RESULTS_FILE, data: row });
     }
 
     function _paramsCreateWithDurationLT(uint128 trancheCount)
@@ -154,8 +155,8 @@ contract LockupTranchedBenchmark is LockupBenchmark {
 
         uint128 depositAmount = AMOUNT_PER_SEGMENT * trancheCount;
 
-        params = defaults.createWithDurationsBrokerNull();
-        params.totalAmount = depositAmount;
+        params = defaults.createWithDurations();
+        params.depositAmount = depositAmount;
         return (params, tranches_);
     }
 
@@ -177,15 +178,15 @@ contract LockupTranchedBenchmark is LockupBenchmark {
 
         uint128 depositAmount = AMOUNT_PER_SEGMENT * trancheCount;
 
-        params = defaults.createWithTimestampsBrokerNull();
+        params = defaults.createWithTimestamps();
         params.timestamps.start = getBlockTimestamp();
         params.timestamps.end = tranches_[trancheCount - 1].timestamp;
-        params.totalAmount = depositAmount;
+        params.depositAmount = depositAmount;
         return (params, tranches_);
     }
 
     function _setUpTranchedStreams(uint128 trancheCount) private {
-        resetPrank({ msgSender: users.sender });
+        setMsgSender(users.sender);
         (Lockup.CreateWithDurations memory params, LockupTranched.TrancheWithDuration[] memory tranches) =
             _paramsCreateWithDurationLT(trancheCount);
         _tranchedStreamIds[0] = lockup.createWithDurationsLT(params, tranches);

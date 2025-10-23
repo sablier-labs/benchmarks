@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.22;
 
-import { Lockup, LockupLinear } from "@sablier/lockup/src/types/DataTypes.sol";
+import { Lockup } from "@sablier/lockup/src/types/Lockup.sol";
+import { LockupLinear } from "@sablier/lockup/src/types/LockupLinear.sol";
 
 import { LockupBenchmark } from "./Benchmark.sol";
 
@@ -20,11 +21,11 @@ contract LockupLinearBenchmark is LockupBenchmark {
 
     function setUp() public virtual override {
         super.setUp();
-        RESULTS_FILE = "results/lockup/lockup-linear.md";
+        IMM_RESULTS_FILE = "results/lockup/lockup-linear.md";
         vm.writeFile({
-            path: RESULTS_FILE,
+            path: IMM_RESULTS_FILE,
             data: string.concat(
-                "With USDC as the streaming token.\n\n",
+                "With WETH as the streaming token.\n\n",
                 "| Function | Configuration | Gas Usage |\n",
                 "| :------- | :------------ | :-------- |\n"
             )
@@ -94,10 +95,10 @@ contract LockupLinearBenchmark is LockupBenchmark {
     //////////////////////////////////////////////////////////////////////////*/
 
     function instrument_CreateWithDurationsLL(uint40 cliffDuration) internal {
-        resetPrank({ msgSender: users.sender });
+        setMsgSender(users.sender);
         vm.warp({ newTimestamp: defaults.START_TIME() });
 
-        Lockup.CreateWithDurations memory params = defaults.createWithDurationsBrokerNull();
+        Lockup.CreateWithDurations memory params = defaults.createWithDurations();
         LockupLinear.Durations memory durations = defaults.durations();
         durations.cliff = cliffDuration;
 
@@ -113,9 +114,9 @@ contract LockupLinearBenchmark is LockupBenchmark {
     }
 
     function instrument_CreateWithTimestampsLL(uint40 cliffTime) internal {
-        resetPrank({ msgSender: users.sender });
+        setMsgSender(users.sender);
 
-        Lockup.CreateWithTimestamps memory params = defaults.createWithTimestampsBrokerNull();
+        Lockup.CreateWithTimestamps memory params = defaults.createWithTimestamps();
 
         LockupLinear.UnlockAmounts memory unlockAmounts = defaults.unlockAmounts();
         if (cliffTime == 0) unlockAmounts.cliff = 0;
@@ -135,13 +136,13 @@ contract LockupLinearBenchmark is LockupBenchmark {
     /// @dev Append a row to the results file with the given function name, configuration, and gas used.
     function _appendRow(string memory functionName, string memory configuration, uint256 gasUsed) private {
         string memory row = string.concat("| `", functionName, "` | ", configuration, " | ", vm.toString(gasUsed), " |");
-        vm.writeLine({ path: RESULTS_FILE, data: row });
+        vm.writeLine({ path: IMM_RESULTS_FILE, data: row });
     }
 
     function _setUpLinearStreams() private {
-        resetPrank({ msgSender: users.sender });
+        setMsgSender(users.sender);
 
-        Lockup.CreateWithTimestamps memory params = defaults.createWithTimestampsBrokerNull();
+        Lockup.CreateWithTimestamps memory params = defaults.createWithTimestamps();
 
         _linearStreamIds[0] = lockup.createWithTimestampsLL({
             params: params,

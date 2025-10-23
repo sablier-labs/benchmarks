@@ -3,7 +3,10 @@ pragma solidity >=0.8.22;
 
 import { ud2x18 } from "@prb/math/src/UD2x18.sol";
 
-import { BatchLockup, Lockup, LockupDynamic, LockupTranched } from "@sablier/lockup/src/types/DataTypes.sol";
+import { BatchLockup } from "@sablier/lockup/src/types/BatchLockup.sol";
+import { Lockup } from "@sablier/lockup/src/types/Lockup.sol";
+import { LockupDynamic } from "@sablier/lockup/src/types/LockupDynamic.sol";
+import { LockupTranched } from "@sablier/lockup/src/types/LockupTranched.sol";
 import { BatchLockupBuilder } from "@sablier/lockup/tests/utils/Defaults.sol";
 
 import { LockupBenchmark } from "./Benchmark.sol";
@@ -26,13 +29,13 @@ contract BatchLockupBenchmark is LockupBenchmark {
 
     function setUp() public virtual override {
         super.setUp();
-        RESULTS_FILE = "results/lockup/batch-lockup.md";
+        IMM_RESULTS_FILE = "results/lockup/batch-lockup.md";
 
         // Create the file if it doesn't exist, otherwise overwrite it.
         vm.writeFile({
-            path: RESULTS_FILE,
+            path: IMM_RESULTS_FILE,
             data: string.concat(
-                "With USDC as the streaming token.\n\n",
+                "With WETH as the streaming token.\n\n",
                 "| Lockup Model | Function | Batch Size | Segments/Tranches | Gas Usage |\n",
                 "| :----------- | :------- | :--------- | :---------------- | :-------- |\n"
             )
@@ -72,30 +75,30 @@ contract BatchLockupBenchmark is LockupBenchmark {
     //////////////////////////////////////////////////////////////////////////*/
 
     function instrument_BatchCreateWithDurationsLD(uint256 batchSize, uint256 segmentCount) internal {
-        Lockup.CreateWithDurations memory createParams = defaults.createWithDurationsBrokerNull();
-        createParams.totalAmount = uint128(AMOUNT_PER_ITEM * segmentCount);
+        Lockup.CreateWithDurations memory createParams = defaults.createWithDurations();
+        createParams.depositAmount = uint128(AMOUNT_PER_ITEM * segmentCount);
         LockupDynamic.SegmentWithDuration[] memory segments = _generateSegmentsWithDuration(segmentCount);
         BatchLockup.CreateWithDurationsLD[] memory batchParams =
             BatchLockupBuilder.fillBatch(createParams, segments, batchSize);
 
         uint256 initialGas = gasleft();
-        batchLockup.createWithDurationsLD(lockup, usdc, batchParams);
+        batchLockup.createWithDurationsLD(lockup, weth, batchParams);
         uint256 gasUsed = initialGas - gasleft();
 
         _appendRow("createWithDurationsLD", "Dynamic", batchSize, vm.toString(segmentCount), gasUsed);
     }
 
     function instrument_BatchCreateWithTimestampsLD(uint256 batchSize, uint256 segmentCount) internal {
-        Lockup.CreateWithTimestamps memory createParams = defaults.createWithTimestampsBrokerNull();
+        Lockup.CreateWithTimestamps memory createParams = defaults.createWithTimestamps();
         LockupDynamic.Segment[] memory segments = _generateSegments(segmentCount);
         createParams.timestamps.start = getBlockTimestamp();
         createParams.timestamps.end = segments[segments.length - 1].timestamp;
-        createParams.totalAmount = uint128(AMOUNT_PER_ITEM * segmentCount);
+        createParams.depositAmount = uint128(AMOUNT_PER_ITEM * segmentCount);
         BatchLockup.CreateWithTimestampsLD[] memory params =
             BatchLockupBuilder.fillBatch(createParams, segments, batchSize);
 
         uint256 initialGas = gasleft();
-        batchLockup.createWithTimestampsLD(lockup, usdc, params);
+        batchLockup.createWithTimestampsLD(lockup, weth, params);
         uint256 gasUsed = initialGas - gasleft();
 
         _appendRow("createWithTimestampsLD", "Dynamic", batchSize, vm.toString(segmentCount), gasUsed);
@@ -103,14 +106,14 @@ contract BatchLockupBenchmark is LockupBenchmark {
 
     function instrument_BatchCreateWithDurationsLL(uint256 batchSize) internal {
         BatchLockup.CreateWithDurationsLL[] memory batchParams = BatchLockupBuilder.fillBatch({
-            params: defaults.createWithDurationsBrokerNull(),
+            params: defaults.createWithDurations(),
             unlockAmounts: defaults.unlockAmounts(),
             durations: defaults.durations(),
             batchSize: batchSize
         });
 
         uint256 initialGas = gasleft();
-        batchLockup.createWithDurationsLL(lockup, usdc, batchParams);
+        batchLockup.createWithDurationsLL(lockup, weth, batchParams);
         uint256 gasUsed = initialGas - gasleft();
 
         _appendRow("createWithDurationsLL", "Linear", batchSize, "N/A", gasUsed);
@@ -118,44 +121,44 @@ contract BatchLockupBenchmark is LockupBenchmark {
 
     function instrument_BatchCreateWithTimestampsLL(uint256 batchSize) internal {
         BatchLockup.CreateWithTimestampsLL[] memory batchParams = BatchLockupBuilder.fillBatch({
-            params: defaults.createWithTimestampsBrokerNull(),
+            params: defaults.createWithTimestamps(),
             unlockAmounts: defaults.unlockAmounts(),
             cliffTime: defaults.CLIFF_TIME(),
             batchSize: batchSize
         });
 
         uint256 initialGas = gasleft();
-        batchLockup.createWithTimestampsLL(lockup, usdc, batchParams);
+        batchLockup.createWithTimestampsLL(lockup, weth, batchParams);
         uint256 gasUsed = initialGas - gasleft();
 
         _appendRow("createWithTimestampsLL", "Linear", batchSize, "N/A", gasUsed);
     }
 
     function instrument_BatchCreateWithDurationsLT(uint256 batchSize, uint256 trancheCount) internal {
-        Lockup.CreateWithDurations memory createParams = defaults.createWithDurationsBrokerNull();
+        Lockup.CreateWithDurations memory createParams = defaults.createWithDurations();
         LockupTranched.TrancheWithDuration[] memory tranches = _generateTranchesWithDuration(trancheCount);
-        createParams.totalAmount = uint128(AMOUNT_PER_ITEM * trancheCount);
+        createParams.depositAmount = uint128(AMOUNT_PER_ITEM * trancheCount);
         BatchLockup.CreateWithDurationsLT[] memory batchParams =
             BatchLockupBuilder.fillBatch(createParams, tranches, batchSize);
 
         uint256 initialGas = gasleft();
-        batchLockup.createWithDurationsLT(lockup, usdc, batchParams);
+        batchLockup.createWithDurationsLT(lockup, weth, batchParams);
         uint256 gasUsed = initialGas - gasleft();
 
         _appendRow("createWithDurationsLT", "Tranched", batchSize, vm.toString(trancheCount), gasUsed);
     }
 
     function instrument_BatchCreateWithTimestampsLT(uint256 batchSize, uint256 trancheCount) internal {
-        Lockup.CreateWithTimestamps memory createParams = defaults.createWithTimestampsBrokerNull();
+        Lockup.CreateWithTimestamps memory createParams = defaults.createWithTimestamps();
         LockupTranched.Tranche[] memory tranches = _generateTranches(trancheCount);
         createParams.timestamps.start = getBlockTimestamp();
         createParams.timestamps.end = tranches[tranches.length - 1].timestamp;
-        createParams.totalAmount = uint128(AMOUNT_PER_ITEM * trancheCount);
+        createParams.depositAmount = uint128(AMOUNT_PER_ITEM * trancheCount);
         BatchLockup.CreateWithTimestampsLT[] memory batchParams =
             BatchLockupBuilder.fillBatch(createParams, tranches, batchSize);
 
         uint256 initialGas = gasleft();
-        batchLockup.createWithTimestampsLT(lockup, usdc, batchParams);
+        batchLockup.createWithTimestampsLT(lockup, weth, batchParams);
         uint256 gasUsed = initialGas - gasleft();
 
         _appendRow("createWithTimestampsLT", "Tranched", batchSize, vm.toString(trancheCount), gasUsed);
@@ -187,7 +190,7 @@ contract BatchLockupBenchmark is LockupBenchmark {
             vm.toString(gasUsed),
             " |"
         );
-        vm.writeLine({ path: RESULTS_FILE, data: row });
+        vm.writeLine({ path: IMM_RESULTS_FILE, data: row });
     }
 
     function _generateSegments(uint256 segmentCount) private view returns (LockupDynamic.Segment[] memory) {
