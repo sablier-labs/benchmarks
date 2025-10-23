@@ -19,11 +19,8 @@ abstract contract LockupBenchmark is BaseTest {
     uint128 internal immutable AMOUNT_PER_SEGMENT = 100e18;
     uint128 internal immutable AMOUNT_PER_TRANCHE = 100e18;
 
-    /// @dev The directory where the benchmark files are stored.
-    string internal RESULTS_DIR = "results/lockup/";
-
     /// @dev The name of the file where the benchmark results are stored. Each derived contract must set this.
-    string internal RESULTS_FILE;
+    string internal IMM_RESULTS_FILE;
 
     /// @dev A variable used to store the content to append to the results file.
     string internal contentToAppend;

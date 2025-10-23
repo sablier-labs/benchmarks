@@ -23,9 +23,9 @@ contract LockupDynamicBenchmark is LockupBenchmark {
 
     function setUp() public virtual override {
         super.setUp();
-        RESULTS_FILE = "results/lockup/lockup-dynamic.md";
+        IMM_RESULTS_FILE = "results/lockup/lockup-dynamic.md";
         vm.writeFile({
-            path: RESULTS_FILE,
+            path: IMM_RESULTS_FILE,
             data: string.concat(
                 "With WETH as the streaming token.\n\n",
                 "| Function | Segments | Configuration | Gas Usage |\n",
@@ -137,7 +137,7 @@ contract LockupDynamicBenchmark is LockupBenchmark {
         string memory row = string.concat(
             "| `", functionName, "` | ", vm.toString(segmentCount), " | ", config, " | ", vm.toString(gasUsed), " |"
         );
-        vm.writeLine({ path: RESULTS_FILE, data: row });
+        vm.writeLine({ path: IMM_RESULTS_FILE, data: row });
     }
 
     function _paramsCreateWithDurationLD(uint128 segmentCount)

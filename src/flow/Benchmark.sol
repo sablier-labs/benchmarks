@@ -18,7 +18,8 @@ contract FlowBenchmark is BaseTest, Constants {
     //////////////////////////////////////////////////////////////////////////*/
 
     uint8 internal constant USDC_DECIMALS = 6;
-    string internal RESULTS_FILE = "results/flow/flow.md";
+
+    string internal IMM_RESULTS_FILE = "results/flow/flow.md";
 
     uint256[8] internal streamIds;
     Users internal users;
@@ -67,7 +68,7 @@ contract FlowBenchmark is BaseTest, Constants {
 
         // Create the file if it doesn't exist, otherwise overwrite it.
         vm.writeFile({
-            path: RESULTS_FILE,
+            path: IMM_RESULTS_FILE,
             data: string.concat(
                 "With USDC as the streaming token.\n\n",
                 "| Function | Stream Solvency | Gas Usage |\n",
@@ -159,7 +160,7 @@ contract FlowBenchmark is BaseTest, Constants {
     /// @dev Appends a row to the benchmark results file.
     function appendRow(string memory name, string memory solvency, uint256 gasUsed) internal {
         string memory row = string.concat("| `", name, "` | ", solvency, " | ", vm.toString(gasUsed), " |");
-        vm.writeLine({ path: RESULTS_FILE, data: row });
+        vm.writeLine({ path: IMM_RESULTS_FILE, data: row });
     }
 
     /// @dev Instrument a function call and log the gas usage to the benchmark results file.

@@ -15,7 +15,6 @@
     "no-empty-blocks": "off",
     "one-contract-per-file": "off",
     "reason-string": "off",
-    "use-natspec": "off",
-    "var-name-mixedcase": "off"
+    "use-natspec": "off"
   }
 }
