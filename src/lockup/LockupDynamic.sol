@@ -2,7 +2,8 @@
 pragma solidity >=0.8.22;
 
 import { ud2x18 } from "@prb/math/src/UD2x18.sol";
-import { Lockup, LockupDynamic } from "@sablier/lockup/src/types/DataTypes.sol";
+import { Lockup } from "@sablier/lockup/src/types/Lockup.sol";
+import { LockupDynamic } from "@sablier/lockup/src/types/LockupDynamic.sol";
 
 import { LockupBenchmark } from "./Benchmark.sol";
 

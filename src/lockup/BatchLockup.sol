@@ -3,7 +3,10 @@ pragma solidity >=0.8.22;
 
 import { ud2x18 } from "@prb/math/src/UD2x18.sol";
 
-import { BatchLockup, Lockup, LockupDynamic, LockupTranched } from "@sablier/lockup/src/types/DataTypes.sol";
+import { BatchLockup } from "@sablier/lockup/src/types/BatchLockup.sol";
+import { Lockup } from "@sablier/lockup/src/types/Lockup.sol";
+import { LockupDynamic } from "@sablier/lockup/src/types/LockupDynamic.sol";
+import { LockupTranched } from "@sablier/lockup/src/types/LockupTranched.sol";
 import { BatchLockupBuilder } from "@sablier/lockup/tests/utils/Defaults.sol";
 
 import { LockupBenchmark } from "./Benchmark.sol";
